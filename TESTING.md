@@ -71,10 +71,23 @@ Reload, click **Start with camera**, allow access.
 - A tight left fist may read as a pinch (thumb tip near index) and start an "adjust" instead of a reset. If that happens, tell me.
 - The finger count may flicker between 4 and 5 (thumb). Hold the pose; report if it never settles.
 
-## 4. Still not built
-3D scene, calibration, accessibility mode / speech, study tools (logging, localization test, task runner, SUS), stretch features.
+## 4. Phase 4 — 3D, colour, calibration, debug
 
-## 5. Known rough edges / things to judge
+| # | Do | Expect |
+|---|---|---|
+| 4.1 | Look at the small 3D card (bottom-left) | Listener head with a nose pointing away from you, a ring of bars dancing with the music, and glowing orbs. **Orb left/right/near/far matches what you hear.** |
+| 4.2 | Press `V` (or ⤢) | The views morph: 3D becomes large, the 2D map shrinks to an inset (mouse mode still works on it). `V` again swaps back. |
+| 4.3 | Compare orb glow colours | Bass-heavy stems (Bass, Drums) glow warm orange; bright stems (Lead, Pad highs) glow cooler/bluer; glow brightens with loudness. |
+| 4.4 | Visuals → Light | 3D disappears, 2D only. If fps stays < 20 for ~4 s with High on, it switches itself with a warning toast. |
+| 4.5 | `C` (camera mode recommended) | Card with a filling ring asks 6 poses: far left, far right, high, low, close, far. Hold still ~1 s each; dots turn green; "Calibration saved ✓". |
+| 4.6 | After calibrating | You can reach the full left/right and up/down range of the map without stretching. Reload: it stays. **Reset** restores defaults. |
+| 4.7 | Calibrate with nearly identical poses | Warning toast explaining why; previous range kept. |
+| 4.8 | `D` | Stats + a raw (red) vs filtered (green) graph of right-hand x + sliders. Raising "Smooth cutoff" makes motion snappier but shakier; lower is smoother but laggier. "Copy values" copies them to put in `src/config.js`. |
+
+## 5. Still not built
+Accessibility mode / speech, study tools (logging, localization test, task runner, SUS), stretch features.
+
+## 6. Known rough edges / things to judge
 - Elevation and front/back cues are weak with generic HRTF — expected. **Left/right must be clear.**
 - Hand-distance depth is noisy; if it jumps, tell me how.
 - Feel of pinch thresholds (`PINCH_ON` 0.25 / `PINCH_OFF` 0.38) and the hand-to-stage range (`MAP` in `src/config.js`): if you can't reach the edges, or pinches miss/stick, report it.

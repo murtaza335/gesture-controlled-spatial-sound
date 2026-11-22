@@ -38,7 +38,17 @@ Camera access needs `localhost` or HTTPS.
 ### Mouse mode (no camera)
 Click **Start without camera**. Move the mouse over the stage (the cursor is your right hand), **hold the button** to pinch, **mouse wheel** to change depth. `Shift` + move = left pinch, `1`–`5` / `0` = left fingers / fist, `Alt` + fast move = swipe.
 
+### More controls
+| Action | How |
+|---|---|
+| Swap 2D map ↔ 3D view | `V` or the ⤢ button on the inset |
+| Light mode (2D only, for slow laptops) | Side panel → Visuals → Light. Switches automatically if fps stays under 20 |
+| Calibrate your hand range | `C` or Calibrate: hold the right hand still ~1 s at far left, far right, high, low, close, far. Saved in the browser; Reset restores defaults |
+| Debug + live tuning | `D`: fps, delegate, raw vs filtered plot, sliders for smoothing / pinch / swipe |
+
 ## Troubleshooting
+- **Can't reach the edges of the map** — run Calibrate (`C`).
+- **3D view is missing** — WebGL may be unavailable; the app falls back to Light mode.
 - **Camera blocked** — allow it in the address bar and press Start again.
 - **No sound** — check system volume; audio starts on the Start click.
 - **Left/right hands swapped** — flip `HANDEDNESS_SWAP` in `src/config.js`.

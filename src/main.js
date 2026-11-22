@@ -6,7 +6,7 @@ import { startCamera } from './input/camera.js';
 import { createHandTracker } from './input/handTracker.js';
 import { createMouseSimulator } from './input/mouseSimulator.js';
 import { HandSmoother } from './filters/oneEuroFilter.js';
-import { handScale } from './gestures/features.js';
+import { handScale, palmCenter } from './gestures/features.js';
 import { createRecognizer } from './gestures/recognizer.js';
 import { createController } from './controller/controller.js';
 import { createStage } from './visuals/stage2d.js';
@@ -266,15 +266,18 @@ function loop(now) {
 
   // input → smooth → recognize → control
   let frame;
+  let rawFrame;
   if (store.state.inputMode === 'camera' && tracker) {
     const raw = tracker.getFrame(now);
+    rawFrame = raw;
     if (raw.t !== lastRawT) {
       lastRawT = raw.t;
       smoothed = smoother.apply(raw, now);
     }
     frame = smoothed;
   } else {
-    frame = withScale(mouse.getFrame(now));
+    rawFrame = mouse.getFrame(now);
+    frame = withScale(rawFrame);
   }
   const gests = recognizer.update(frame, now);
   if (calibration.active) {
@@ -322,6 +325,8 @@ function loop(now) {
     inputMode: st.inputMode,
     spatialMode: st.spatialMode,
     gests,
+    rawX: rawFrame.right ? palmCenter(rawFrame.right.lm).x : null,
+    fltX: frame.right ? palmCenter(frame.right.lm).x : null,
   });
 }
 

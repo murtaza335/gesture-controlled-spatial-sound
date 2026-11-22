@@ -9,6 +9,13 @@
 - `src/input/mouseSimulator.js` imports `tests/fixtures/handFixtures.js` (as the plan suggests) so real feature extraction runs on fake hands.
 - Not in MVP: left-hand gestures (select/adjust/fist), swipe, extra tracks, upload, 3D scene, calibration, study tools.
 
+## Phase 3–4 decisions
+- Mouse-mode swipe needs `Alt` held, so mouse flicks don't change track.
+- The 3D scene is a lazy-loaded inset card; `V` swaps it with the 2D map (a morph), because mouse-mode interaction lives on the 2D canvas.
+- Auto Light-mode fallback: render fps < 20 for 8 consecutive half-second samples (after the first 6 s). In camera mode render fps is tied to tracking time (detection runs synchronously), so slow tracking can trigger it.
+- Calibration saves the whole MAP to `localStorage` (`gsam.calibration`); Reset deletes it.
+- A tight left fist may be read as a left pinch (risk, untested on real hands).
+
 ## Needs a human (camera + headphones)
 - Whether `HANDEDNESS_SWAP` must be flipped.
 - Tracking fps / GPU vs CPU delegate on real hardware.

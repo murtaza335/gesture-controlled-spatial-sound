@@ -240,7 +240,17 @@ kbd { background: rgba(255, 255, 255, 0.1); border: 1px solid var(--line); borde
 .help-card .close { position: absolute; right: 14px; top: 14px; }
 
 /* ---------- debug ---------- */
-.debug { position: fixed; right: 316px; top: 12px; z-index: 20; padding: 10px 14px; border-radius: 12px; background: rgba(10, 12, 18, 0.85); border: 1px solid var(--line); backdrop-filter: blur(10px); font: 12px/1.6 ui-monospace, monospace; white-space: pre; animation: toast-in 0.35s var(--spring) both; }
+.debug { position: fixed; right: 316px; top: 12px; z-index: 20; width: 340px; padding: 10px 14px; border-radius: 12px; background: rgba(10, 12, 18, 0.88); border: 1px solid var(--line); backdrop-filter: blur(10px); font: 12px/1.6 ui-monospace, monospace; animation: toast-in 0.35s var(--spring) both; }
+.debug[hidden] { display: none; }
+.dbg-text { margin: 0 0 8px; font: inherit; white-space: pre; overflow: hidden; }
+.dbg-plot-label { color: var(--muted); margin-bottom: 2px; }
+.dbg-plot-label .raw { color: #ff8a8a; }
+.dbg-plot-label .flt { color: var(--ok); }
+.dbg-plot { width: 100%; height: 64px; display: block; border-radius: 8px; background: rgba(255, 255, 255, 0.04); }
+.dbg-sliders { display: flex; flex-direction: column; gap: 2px; margin: 8px 0; }
+.dbg-row { display: grid; grid-template-columns: 96px 1fr 40px; align-items: center; gap: 8px; }
+.dbg-row input { width: 100%; accent-color: var(--accent); }
+.dbg-row output { text-align: right; }
 
 /* ---------- start screen ---------- */
 .start { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; transition: opacity 0.6s var(--ease), visibility 0.6s; }
