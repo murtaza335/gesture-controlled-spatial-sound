@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spatial Mixer</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='7' fill='%237aa2ff'/><circle cx='16' cy='16' r='13' fill='none' stroke='%237aa2ff' stroke-width='2' opacity='.5'/></svg>" />
+  </head>
+  <body>
+    <div id="app" class="app" aria-hidden="true">
+      <main class="main">
+        <canvas id="stage" aria-label="Sound stage: shows where each sound sits around your head"></canvas>
+
+        <div class="cam-card" id="camCard">
+          <video id="video" playsinline muted></video>
+          <canvas id="overlay" width="320" height="240"></canvas>
+          <div class="cam-badge"><span class="dot"></span><span id="camLabel">Mouse mode</span></div>
+        </div>
+
+        <div class="stage-legend" aria-hidden="true">
+          <span>◀ Left</span><span>Front</span><span>Right ▶</span>
+        </div>
+        <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+      </main>
+
+      <section class="hud" id="hud">
+        <div class="hud-main">
+          <div class="hint" id="hint"><span id="hintText">Pinch near a sound and move your hand</span></div>
+          <div class="readout" id="readout"></div>
+        </div>
+        <div class="pills">
+          <span class="pill" id="pillInput">Mouse</span>
+          <span class="pill" id="pillFps">– fps</span>
+          <span class="pill" id="pillSpatial">HRTF</span>
+        </div>
+      </section>
+
+      <aside class="panel" id="panel">
+        <header class="panel-head">
+          <h1>Spatial Mixer</h1>
+          <button class="btn icon" id="btnPlay" aria-label="Play or pause" title="Play / pause (Space)">
+            <svg class="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
+            <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.5-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/></svg>
+          </button>
+        </header>
+
+        <div class="group">
+          <label class="group-label" for="trackSelect">Track</label>
+          <select id="trackSelect" class="select"></select>
+        </div>
+
+        <div class="group">
+          <div class="group-label">Sounds <span class="muted">click to focus</span></div>
+          <ul class="sources" id="sourceList"></ul>
+        </div>
+
+        <div class="group">
+          <div class="group-label">Spatial audio</div>
+          <div class="seg" id="spatialSeg" role="group" aria-label="Spatial mode">
+            <button class="seg-btn active" data-mode="hrtf" title="3D binaural (S)">3D · HRTF</button>
+            <button class="seg-btn" data-mode="stereo" title="Plain stereo (S)">Stereo</button>
+            <span class="seg-thumb"></span>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-label">Input</div>
+          <div class="seg" id="inputSeg" role="group" aria-label="Input mode">
+            <button class="seg-btn" data-mode="camera">Camera</button>
+            <button class="seg-btn active" data-mode="mouse" title="Toggle with M">Mouse</button>
+            <span class="seg-thumb"></span>
+          </div>
+        </div>
+
+        <details class="help" open>
+          <summary>Controls</summary>
+          <ul>
+            <li><b>Pinch</b> near a sound, then move your <b>right hand</b></li>
+            <li>Hand <b>left / right</b> → direction</li>
+            <li>Hand <b>up / down</b> → height</li>
+            <li>Hand <b>toward camera</b> → closer</li>
+            <li><kbd>M</kbd> mouse mode · click-drag, wheel = depth</li>
+            <li><kbd>S</kbd> HRTF / stereo · <kbd>Space</kbd> pause · <kbd>D</kbd> debug</li>
+          </ul>
+        </details>
+      </aside>
+    </div>
+
+    <div class="debug" id="debug" hidden></div>
+
+    <div class="start" id="start">
+      <div class="start-bg"></div>
+      <div class="start-card">
+        <div class="logo" aria-hidden="true">
+          <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span><span class="core"></span>
+        </div>
+        <h1>Spatial Mixer</h1>
+        <p class="lead">Grab a sound with your hand and move it around your head.</p>
+        <p class="note">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v5H5a1 1 0 0 1-1-1v-4zM20 14h-3v5h2a1 1 0 0 0 1-1v-4z"/></svg>
+          Wear headphones for the 3D effect
+        </p>
+        <div class="start-actions">
+          <button class="btn primary big" id="btnStart"><span>Start with camera</span></button>
+          <button class="btn ghost big" id="btnStartMouse"><span>Start without camera</span></button>
+        </div>
+        <div class="loading" id="loading" hidden>
+          <div class="bar"><i></i></div>
+          <span id="loadingText">Preparing sounds…</span>
+        </div>
+        <p class="err" id="startErr" hidden></p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
