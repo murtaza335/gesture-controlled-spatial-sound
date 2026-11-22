@@ -1,7 +1,7 @@
 // All tunable numbers live here. No magic numbers elsewhere.
 export const CONFIG = {
   VIDEO: { width: 640, height: 480 },
-  HANDEDNESS_SWAP: true,
+  HANDEDNESS_SWAP: false, // tested on real hardware: MediaPipe labels already match the user's hands
   HAND_LOST_GRACE_MS: 300,
   SMOOTH: { minCutoff: 1.5, beta: 0.5, dCutoff: 1.0 },
   SMOOTH_DEPTH: { minCutoff: 0.4, beta: 0.2, dCutoff: 1.0 },

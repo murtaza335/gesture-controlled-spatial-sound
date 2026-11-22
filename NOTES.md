@@ -16,4 +16,4 @@
 - Audible checks: stems from different directions, no clicks while moving, HRTF vs stereo difference.
 
 ## Tuned values
-None yet (all defaults from the plan).
+- `HANDEDNESS_SWAP` flipped from `true` to `false` (hands were reported swapped on the first real camera test).
