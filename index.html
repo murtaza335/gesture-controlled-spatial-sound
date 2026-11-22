@@ -8,8 +8,16 @@
   </head>
   <body>
     <div id="app" class="app" aria-hidden="true">
-      <main class="main">
-        <canvas id="stage" aria-label="Sound stage: shows where each sound sits around your head"></canvas>
+      <main class="main" id="main" data-view="stage">
+        <div class="view stage-view" id="stageWrap">
+          <canvas id="stage" aria-label="Sound stage: shows where each sound sits around your head"></canvas>
+          <button class="view-btn" id="btnSwapA" title="Swap views (V)" aria-label="Show 2D map large">⤢</button>
+        </div>
+        <div class="view scene-view" id="sceneWrap">
+          <canvas id="scene3d" aria-label="3D view of the sounds around the listener's head"></canvas>
+          <button class="view-btn" id="btnSwapB" title="Swap views (V)" aria-label="Show 3D view large">⤢</button>
+          <span class="view-tag">3D</span>
+        </div>
 
         <div class="cam-card" id="camCard">
           <video id="video" playsinline muted></video>
@@ -94,6 +102,15 @@
           <div class="seg" id="spatialSeg" role="group" aria-label="Spatial mode">
             <button class="seg-btn active" data-mode="hrtf" title="3D binaural (S)">3D · HRTF</button>
             <button class="seg-btn" data-mode="stereo" title="Plain stereo (S)">Stereo</button>
+            <span class="seg-thumb"></span>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-label">Visuals <span class="muted">V swaps 2D / 3D</span></div>
+          <div class="seg" id="qualitySeg" role="group" aria-label="Visual quality">
+            <button class="seg-btn active" data-mode="high" title="3D scene on">High · 3D</button>
+            <button class="seg-btn" data-mode="low" title="Light: 2D only, for slower laptops">Light</button>
             <span class="seg-thumb"></span>
           </div>
         </div>

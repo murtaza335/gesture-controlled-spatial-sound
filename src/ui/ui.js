@@ -102,6 +102,12 @@ export function createUI({ store, actions }) {
     const b = e.target.closest('.seg-btn');
     if (b) actions.setApplyTone(b.dataset.mode);
   });
+  $('qualitySeg').addEventListener('click', (e) => {
+    const b = e.target.closest('.seg-btn');
+    if (b) actions.setQuality(b.dataset.mode);
+  });
+  $('btnSwapA').addEventListener('click', () => actions.swapView());
+  $('btnSwapB').addEventListener('click', () => actions.swapView());
   els.btnPlay.addEventListener('click', () => actions.togglePlay());
   els.trackSelect.addEventListener('change', () => actions.setTrack(Number(els.trackSelect.value)));
 
@@ -235,6 +241,11 @@ export function createUI({ store, actions }) {
       pop(els.pillInput);
     }
     if ('playing' in patch) els.btnPlay.classList.toggle('paused', !s.playing);
+    if ('view' in patch) $('main').dataset.view = s.view;
+    if ('quality' in patch) {
+      $('main').classList.toggle('low', s.quality === 'low');
+      setSeg($('qualitySeg'), s.quality);
+    }
     if ('applyToneTo' in patch) {
       setSeg(els.toneSeg, s.applyToneTo);
       els.toneTarget.textContent = s.applyToneTo === 'all' ? 'all sounds' : 'focused sound';

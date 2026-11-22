@@ -33,5 +33,7 @@ export const store = createStore({
   cursor: { right: null, left: null },
   playing: true,
   debug: false,
+  quality: 'high', // 'high' = 3D scene on, 'low' = 2D only
+  view: 'stage', // which view is large: 'stage' (2D map) or '3d'
   hint: '',
 });

@@ -12,6 +12,7 @@ import { createController } from './controller/controller.js';
 import { createStage } from './visuals/stage2d.js';
 import { createOverlay } from './visuals/overlay2d.js';
 import { createScope } from './visuals/scope.js';
+import { createScene3d } from './visuals/scene3d.js';
 import { createUI } from './ui/ui.js';
 import { createDebug } from './ui/debug.js';
 import { installKeyboard } from './ui/keyboard.js';
@@ -90,6 +91,25 @@ const actions = {
       ui.toast('This file could not be decoded. Try an MP3, WAV or OGG file.', { warn: true, ms: 5000 });
     }
   },
+  setQuality(q, auto = false) {
+    if (q === store.state.quality) return;
+    store.set({ quality: q, view: q === 'low' ? 'stage' : store.state.view });
+    ui.toast(
+      q === 'low' ? (auto ? 'Frame rate was low — switched to Light mode (2D only)' : 'Light mode: 2D only') : '3D view on',
+      { warn: auto, ms: auto ? 5000 : 1600 },
+    );
+  },
+  swapView() {
+    if (store.state.quality === 'low') {
+      ui.toast('3D is off in Light mode — switch Visuals to High', { warn: true });
+      return;
+    }
+    if (!scene3) {
+      ui.toast('3D view is not available on this device', { warn: true });
+      return;
+    }
+    store.set({ view: store.state.view === 'stage' ? '3d' : 'stage' });
+  },
   setApplyTone(mode) {
     store.set({ applyToneTo: mode });
   },
@@ -105,6 +125,19 @@ const ui = createUI({ store, actions });
 const controller = createController({ store, engine, stage, ui, actions });
 installKeyboard(actions);
 const scope = createScope($('wave'), $('spectrum'));
+
+// 3D scene loads lazily (keeps first paint fast); falls back to Light mode if WebGL is missing.
+let scene3 = null;
+createScene3d($('scene3d'))
+  .then((s) => {
+    scene3 = s;
+    if (!s) actions.setQuality('low', true);
+  })
+  .catch((err) => {
+    console.warn('3D scene failed', err);
+    actions.setQuality('low', true);
+  });
+let lowFpsStreak = 0;
 
 function controllerReset() {
   if (controller.grabbing) controller.grabEnd();
@@ -198,6 +231,13 @@ function loop(now) {
     fpsAcc = 0;
     fpsCount = 0;
     ui.setFps(store.state.inputMode === 'camera' ? tracker?.stats.trackFps ?? 0 : renderFps);
+    // performance pass: sustained slow rendering with 3D on → Light mode
+    if (store.state.quality === 'high' && scene3 && !document.hidden && now > 6000 && renderFps < 20) lowFpsStreak++;
+    else lowFpsStreak = 0;
+    if (lowFpsStreak >= 8) {
+      lowFpsStreak = 0;
+      actions.setQuality('low', true);
+    }
   }
 
   // input → smooth → recognize → control
@@ -230,6 +270,7 @@ function loop(now) {
   overlay.render(frame, gests);
   ui.frame(levels, !!(frame.right || frame.left), { gests, now, flash: controller.flash, bump: controller.bump });
   scope.render(engine.analysers.master, engine.ctx.sampleRate);
+  if (scene3 && st.quality === 'high') scene3.render(now, dt, st, engine.analysers, engine.ctx.sampleRate);
   debug.update(now, {
     renderFps,
     trackFps: tracker?.stats.trackFps,
