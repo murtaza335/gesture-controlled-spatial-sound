@@ -8,9 +8,10 @@ const PARAM_BY_FINGERS = Object.fromEntries(PARAM_KEYS.filter((k) => PARAMS[k].f
  * Turns gesture events into state changes and audio calls.
  * The only module (besides main) that bridges gestures → store → engine.
  */
-export function createController({ store, engine, stage, ui, actions }) {
+export function createController({ store, engine, stage, ui, actions, a11y, logger }) {
   let grab = null; // { id, dAz, dEl, ratio }
-  let adj = null; // { key, startValue, startY }
+  let adj = null; // { key, startValue, startY, tick }
+  const lastParamLog = {}; // key → ms, throttle for param logging
   let lastNow = 0;
   const flash = { swipe: 0 }; // timestamps for momentary gesture highlights
   const bump = { t: 0 }; // last param change time (HUD pulse)
@@ -43,6 +44,11 @@ export function createController({ store, engine, stage, ui, actions }) {
       engine.setSourceParam(s.id, key, v);
     }
     bump.t = performance.now();
+    if (logger?.active && performance.now() - (lastParamLog[key] ?? 0) > 100) {
+      lastParamLog[key] = performance.now();
+      const f = targets[0];
+      logger.log('param', { source_id: f?.id, param: key, value: Math.round(v * 100) / 100 });
+    }
   }
 
   /** Direct position set (sliders / arrow keys). */
@@ -68,6 +74,8 @@ export function createController({ store, engine, stage, ui, actions }) {
     const { source, d } = stage.nearest(cursor.az, cursor.el, sources);
     if (!source || (sources.length > 1 && d > CONFIG.GRAB_RADIUS)) {
       ui.toast('Move closer to a sound to grab it', { warn: true });
+      a11y?.miss();
+      logger?.log('grab_miss', { az: cursor.az, el: cursor.el });
       return;
     }
     // Keep offsets so the source doesn't jump to the hand; they ease out ("magnet" feel).
@@ -79,10 +87,15 @@ export function createController({ store, engine, stage, ui, actions }) {
     };
     store.set({ grabbedSourceId: source.id, focusedSourceId: source.id });
     stage.burst(source.id, true);
+    a11y?.grab();
+    logger?.log('grab', { source_id: source.id, az: source.az, el: source.el, dist: source.dist });
   }
 
   function grabEnd() {
     if (!grab) return;
+    const s = sourceById(grab.id);
+    logger?.log('release', { source_id: grab.id, az: s?.az, el: s?.el, dist: s?.dist });
+    a11y?.release();
     stage.burst(grab.id, false);
     grab = null;
     store.set({ grabbedSourceId: null });
@@ -92,7 +105,20 @@ export function createController({ store, engine, stage, ui, actions }) {
     const key = store.state.selectedParam;
     const f = sourceById(store.state.focusedSourceId) ?? store.state.sources[0];
     if (!f) return;
-    adj = { key, startValue: f.params[key], startY: y };
+    adj = { key, startValue: f.params[key], startY: y, tick: Math.floor(((f.params[key] - PARAMS[key].min) / (PARAMS[key].max - PARAMS[key].min)) * 10) };
+    logger?.log('adjust_start', { source_id: f.id, param: key, value: f.params[key] });
+  }
+
+  function adjustEnd() {
+    if (!adj) return;
+    const f = sourceById(store.state.focusedSourceId);
+    const def = PARAMS[adj.key];
+    const v = f?.params[adj.key];
+    if (v !== undefined) {
+      a11y?.adjustEnd(def.label, def.format(v));
+      logger?.log('adjust_end', { source_id: f.id, param: adj.key, value: v });
+    }
+    adj = null;
   }
 
   return {
@@ -114,6 +140,9 @@ export function createController({ store, engine, stage, ui, actions }) {
     reset() {
       if (grab) grabEnd();
       adj = null;
+    },
+    get lastCursor() {
+      return store.state.cursor.right;
     },
     resetParam(key = store.state.selectedParam) {
       setParam(key, PARAMS[key].default);
@@ -145,20 +174,27 @@ export function createController({ store, engine, stage, ui, actions }) {
           case 'grabEnd': grabEnd(); break;
           case 'swipe':
             flash.swipe = now;
+            logger?.log('swipe', { extra: { dir: ev.dir } });
             actions.changeTrack(ev.dir === 'right' ? 1 : -1);
             break;
           case 'select': {
             const key = PARAM_BY_FINGERS[ev.count];
-            if (key) selectParam(key);
+            if (key) {
+              selectParam(key);
+              a11y?.select(PARAMS[key].label);
+              logger?.log('select', { param: key });
+            }
             break;
           }
           case 'adjustStart': adjustStart(ev.y); break;
-          case 'adjustEnd': adj = null; break;
+          case 'adjustEnd': adjustEnd(); break;
           case 'reset': {
             const key = st.selectedParam;
             setParam(key, PARAMS[key].default);
             ui.toast(`${PARAMS[key].label} reset`, { ms: 1400 });
             flash.reset = now;
+            a11y?.reset();
+            logger?.log('reset', { param: key });
             break;
           }
           default: break;
@@ -170,6 +206,15 @@ export function createController({ store, engine, stage, ui, actions }) {
         const def = PARAMS[adj.key];
         const v = adj.startValue + (adj.startY - l.palm.y) * (def.max - def.min) * CONFIG.ADJUST_SENSITIVITY;
         setParam(adj.key, v);
+        const f = sourceById(st.focusedSourceId);
+        if (f) {
+          const d = PARAMS[adj.key];
+          const bucket = Math.floor(((f.params[adj.key] - d.min) / (d.max - d.min)) * 10);
+          if (bucket !== adj.tick) {
+            adj.tick = bucket;
+            a11y?.tick(); // soft click each time the value crosses 10% of its range
+          }
+        }
       }
 
       // while grabbed: follow the hand
@@ -193,7 +238,10 @@ export function createController({ store, engine, stage, ui, actions }) {
         const { source, d } = stage.nearest(cursor.az, cursor.el, st.sources);
         if (source && (st.sources.length === 1 || d <= CONFIG.GRAB_RADIUS)) hoverId = source.id;
       }
-      if (hoverId !== st.hoverSourceId) store.set({ hoverSourceId: hoverId });
+      if (hoverId !== st.hoverSourceId) {
+        store.set({ hoverSourceId: hoverId });
+        if (hoverId !== null) a11y?.hover(sourceById(hoverId)?.name ?? '');
+      }
 
       if (adj) {
         setHint(`Adjusting ${PARAMS[adj.key].label} — move your left hand up / down`, true);

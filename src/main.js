@@ -17,6 +17,13 @@ import { createCalibration, loadCalibration, saveCalibration, clearCalibration }
 import { createUI } from './ui/ui.js';
 import { createDebug } from './ui/debug.js';
 import { installKeyboard } from './ui/keyboard.js';
+import { createEarcons } from './audio/earcons.js';
+import { createAccessibility } from './ui/accessibility.js';
+import { createLogger } from './study/logger.js';
+import { createTaskRunner } from './study/taskRunner.js';
+import { createLocalizationTest } from './study/localizationTest.js';
+import { createStudyUI } from './ui/studyPanel.js';
+import { handToSpherical } from './mapping/handToAudio.js';
 
 const $ = (id) => document.getElementById(id);
 const startEl = $('start');
@@ -82,7 +89,77 @@ const actions = {
     if (n < 2) return;
     const i = (store.state.trackIndex + delta + n) % n;
     actions.setTrack(i);
-    ui.toast(`♪ ${store.state.tracks[i].name}`, { ms: 1800 });
+    const name = store.state.tracks[i].name;
+    ui.toast(`♪ ${name}`, { ms: 1800 });
+    a11y.track(name);
+    logger.log('track_change', { extra: { name } });
+  },
+  toast: (m, o) => ui.toast(m, o),
+  sliderStart: () => runner.note('adjust'),
+
+  // ----- accessibility -----
+  toggleA11y() {
+    const on = !store.state.a11yMode;
+    store.set({ a11yMode: on });
+    studyUI.setA11y(on);
+    ui.toast(on ? 'Accessibility mode on: audio cues and speech' : 'Accessibility mode off', { ms: 2000 });
+    if (on) a11y.speak('Accessibility mode on');
+  },
+  toggleScreenOff() {
+    const on = !store.state.screenOff;
+    store.set({ screenOff: on });
+    studyUI.setScreenOff(on);
+    if (on && !store.state.a11yMode) actions.toggleA11y(); // eyes-free use needs the audio cues
+  },
+
+  // ----- study -----
+  _beginStudy({ participantId, condition }, running) {
+    store.set({ study: { participantId, condition, running } });
+    logger.setContext({ participant: participantId, condition, task_id: '' });
+    logger.start();
+    studyUI.updateLogCount();
+  },
+  runTasks(fields) {
+    actions.cancelStudy(true);
+    actions._beginStudy(fields, 'tasks');
+    runner.start(performance.now());
+  },
+  runLoc(block, fields) {
+    actions.cancelStudy(true);
+    actions._beginStudy(fields, 'localization');
+    loc.start({ block }, performance.now());
+    if (block === 'front') ui.toast(`Localization (${store.state.spatialMode === 'hrtf' ? '3D' : 'stereo'}): point where each beep came from, then pinch / click`, { ms: 4000 });
+    else ui.toast('Front/back: press F if the beep was in front, B if behind', { ms: 4000 });
+  },
+  giveUp() {
+    if (runner.running) runner.giveUp(performance.now());
+  },
+  cancelStudy(silent = false) {
+    const was = runner.running || loc.running;
+    runner.abort();
+    loc.cancel();
+    if (was) {
+      store.set({ study: { ...store.state.study, running: null } });
+      studyUI.renderTask({ running: false });
+      studyUI.renderLoc({ running: false });
+      if (!silent) ui.toast('Study run stopped', { ms: 1800 });
+    }
+  },
+  fb(choice) {
+    if (loc.running) loc.respondFB(choice, performance.now());
+  },
+  exportLog() {
+    if (!logger.count) {
+      ui.toast('Nothing logged yet — run a study task first', { warn: true });
+      return;
+    }
+    logger.download();
+    ui.toast(`Exported ${logger.filename()}`, { ms: 3000 });
+  },
+  clearLog() {
+    logger.clear();
+    studyUI.updateLogCount();
+    ui.toast('Log cleared', { ms: 1400 });
   },
   async upload(file) {
     ui.toast(`Adding ${file.name}…`, { ms: 1500 });
@@ -146,7 +223,43 @@ const actions = {
 };
 
 const ui = createUI({ store, actions });
-const controller = createController({ store, engine, stage, ui, actions });
+const logger = createLogger();
+const a11y = createAccessibility({ store, earcons: createEarcons(engine) });
+const controller = createController({ store, engine, stage, ui, actions, a11y, logger });
+const studyUI = createStudyUI({ store, logger, actions });
+
+// Study modules. Tasks start from a clean Demo Band each time so every participant begins equal.
+const runner = createTaskRunner({
+  getState: () => store.state,
+  logger,
+  setup: (task) => {
+    actions.setTrack(0);
+    store.set({ selectedParam: 'bass', applyToneTo: 'focused' });
+    a11y.speak(task.text);
+  },
+  onUpdate: (s) => {
+    studyUI.renderTask(s);
+    if (s.done || s.aborted) {
+      store.set({ study: { ...store.state.study, running: null } });
+      studyUI.updateLogCount();
+    }
+    if (s.done) studyUI.showTaskSummary(s.results);
+  },
+});
+const loc = createLocalizationTest({
+  engine,
+  logger,
+  onUpdate: (s) => {
+    studyUI.renderLoc(s);
+    if (!s.running && s.summary) {
+      store.set({ study: { ...store.state.study, running: null } });
+      studyUI.updateLogCount();
+      studyUI.showLocSummary(s.summary);
+    }
+  },
+});
+let lastPointAt = 0;
+const st0 = () => store.state;
 installKeyboard(actions);
 const scope = createScope($('wave'), $('spectrum'));
 
@@ -298,7 +411,28 @@ function loop(now) {
       }
     }
   }
+  // listening test: a right-hand pinch is an answer, not a grab
+  if (loc.running) {
+    for (let i = gests.events.length - 1; i >= 0; i--) {
+      if (gests.events[i].type === 'grabStart') {
+        const p = gests.right.palm;
+        if (p) loc.respond(handToSpherical(p, gests.right.scale || 0.19, CONFIG.MAP).az, now);
+        gests.events.splice(i, 1);
+      }
+    }
+    if (store.state.screenOff && st0().cursor.right && now - lastPointAt > 500) {
+      lastPointAt = now;
+      a11y.pointAt(st0().cursor.right.az);
+    }
+  }
+  for (const ev of gests.events) {
+    if (ev.type === 'grabStart') runner.note('grab');
+    else if (ev.type === 'adjustStart') runner.note('adjust');
+  }
   controller.update(gests, frame, now);
+  runner.update(now);
+  loc.tick(now);
+  studyUI.tickTimer(now);
 
   // visuals
   for (const s of store.state.sources) levels.set(s.id, engine.level(s.id));
