@@ -28,6 +28,8 @@ export const store = createStore({
   grabbedSourceId: null,
   hoverSourceId: null,
   selectedParam: 'bass',
+  applyToneTo: 'focused', // 'focused' | 'all'
+  hintActive: false,
   cursor: { right: null, left: null },
   playing: true,
   debug: false,

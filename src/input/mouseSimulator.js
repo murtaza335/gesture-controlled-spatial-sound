@@ -4,20 +4,25 @@ import { palmCenter } from '../gestures/features.js';
 
 /**
  * Fake hands from mouse + keyboard so every feature works without a camera.
- * Mouse over the stage = right palm position, wheel = depth, button = pinch.
- * Keys 1–5 / 0 = left hand finger count / fist.
+ *  - mouse over the stage = right palm; wheel = depth; button = pinch
+ *  - Alt + fast horizontal move = swipe (swipes are off otherwise, so mouse flicks don't change track)
+ *  - keys 1–5 / 0 = left-hand finger count / fist (Esc hides the left hand)
+ *  - hold Shift = left pinch; the left hand then follows the mouse's vertical position
  */
 export function createMouseSimulator(stageEl, getPlot) {
   const sim = {
     enabled: false,
-    fx: 0.5, // pointer position in stage fractions (0..1, y down)
+    fx: 0.5, // pointer position in plot fractions (0..1, y down)
     fy: 0.5,
     scale: 0.19,
     pinchTarget: 0,
     pinch: 0,
     down: false,
     leftCount: null,
-    pointerInside: false,
+    leftPinch: 0,
+    shift: false,
+    alt: false,
+    leftY: 0.5,
   };
 
   const onMove = (e) => {
@@ -25,11 +30,13 @@ export function createMouseSimulator(stageEl, getPlot) {
     const p = getPlot();
     sim.fx = (e.clientX - r.left - p.x) / p.w;
     sim.fy = (e.clientY - r.top - p.y) / p.h;
-    sim.pointerInside = sim.fx >= 0 && sim.fx <= 1 && sim.fy >= 0 && sim.fy <= 1;
+    sim.alt = e.altKey;
+    sim.shift = e.shiftKey;
   };
   stageEl.addEventListener('pointerdown', (e) => {
     if (!sim.enabled) return;
     onMove(e);
+    if (e.shiftKey) return; // shift = left hand
     sim.down = true;
     sim.pinchTarget = 1;
     stageEl.setPointerCapture?.(e.pointerId);
@@ -50,8 +57,18 @@ export function createMouseSimulator(stageEl, getPlot) {
   );
   window.addEventListener('keydown', (e) => {
     if (!sim.enabled || e.target?.tagName === 'INPUT') return;
+    if (e.key === 'Shift') sim.shift = true;
+    if (e.key === 'Alt') sim.alt = true;
     if (/^[0-5]$/.test(e.key)) sim.leftCount = Number(e.key);
     if (e.key === 'Escape') sim.leftCount = null;
+  });
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'Shift') sim.shift = false;
+    if (e.key === 'Alt') sim.alt = false;
+  });
+  window.addEventListener('blur', () => {
+    sim.shift = false;
+    sim.alt = false;
   });
 
   function handAt(fx, fy, scale, extended, pinch) {
@@ -61,6 +78,8 @@ export function createMouseSimulator(stageEl, getPlot) {
     const c = palmCenter(lm0);
     return lm0.map((p) => ({ x: p.x - c.x + target.x, y: p.y - c.y + target.y, z: 0 }));
   }
+
+  const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
   return {
     sim,
@@ -77,19 +96,24 @@ export function createMouseSimulator(stageEl, getPlot) {
     getFrame(now) {
       sim.pinch += (sim.pinchTarget - sim.pinch) * 0.5;
       if (sim.pinch < 0.01) sim.pinch = 0;
-      const fx = Math.min(1, Math.max(0, sim.fx));
-      const fy = Math.min(1, Math.max(0, sim.fy));
       const right = {
         side: 'right',
         score: 1,
-        lm: handAt(fx, fy, sim.scale, [true, true, true, true, true], sim.pinch),
+        lm: handAt(clamp01(sim.fx), clamp01(sim.fy), sim.scale, [true, true, true, true, true], sim.pinch),
       };
+
+      // left hand: visible while Shift is held or a finger count was chosen
+      const leftTarget = sim.shift ? 1 : 0;
+      sim.leftPinch += (leftTarget - sim.leftPinch) * 0.5;
+      if (sim.leftPinch < 0.01) sim.leftPinch = 0;
+      if (sim.shift) sim.leftY = clamp01(sim.fy);
       let left = null;
-      if (sim.leftCount !== null) {
-        const ext = sim.leftCount === 0 ? FIST : fingers(sim.leftCount);
-        left = { side: 'left', score: 1, lm: handAt(0.12, 0.5, 0.17, ext, 0) };
+      if (sim.shift || sim.leftCount !== null) {
+        const count = sim.leftCount ?? 2;
+        const ext = count === 0 ? FIST : fingers(count);
+        left = { side: 'left', score: 1, lm: handAt(0.12, sim.leftY, 0.17, ext, sim.leftPinch) };
       }
-      return { t: now, left, right, source: 'mouse' };
+      return { t: now, left, right, source: 'mouse', noSwipe: !sim.alt };
     },
   };
 }
