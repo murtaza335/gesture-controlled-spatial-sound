@@ -32,8 +32,8 @@ button, select, input { font: inherit; color: inherit; }
   height: 100%;
   display: grid;
   grid-template-columns: 1fr 300px;
-  grid-template-rows: 1fr 76px;
-  grid-template-areas: 'main panel' 'hud panel';
+  grid-template-rows: 1fr 64px 128px;
+  grid-template-areas: 'main panel' 'scope panel' 'hud panel';
   opacity: 0;
   transform: scale(0.985);
   transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
@@ -139,6 +139,69 @@ button, select, input { font: inherit; color: inherit; }
 .help ul { margin: 6px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 4px; }
 .help b { color: var(--text); }
 kbd { background: rgba(255, 255, 255, 0.1); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; font: 11px ui-monospace, monospace; color: var(--text); }
+
+/* ---------- scope ---------- */
+.scope { grid-area: scope; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
+.scope { min-height: 0; overflow: hidden; }
+.scope canvas { width: 100%; height: 64px; display: block; background: var(--bg2); }
+
+/* ---------- param card + gesture chips ---------- */
+.hud { gap: 20px; }
+.param-card { flex: 0 0 230px; padding: 10px 14px; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); transition: border-color 0.3s, box-shadow 0.3s, background 0.3s; }
+.param-card.bump { border-color: var(--accent); box-shadow: 0 0 22px rgba(122, 162, 255, 0.35); background: rgba(122, 162, 255, 0.08); }
+.param-card.changed .param-name { animation: name-pop 0.45s var(--spring); }
+@keyframes name-pop { from { transform: scale(0.85); opacity: 0.4; } }
+.param-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.param-name { font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); font-weight: 700; display: inline-block; }
+.param-val { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.param-bar { position: relative; height: 6px; border-radius: 6px; background: rgba(255, 255, 255, 0.08); margin: 8px 0 6px; overflow: hidden; }
+.param-bar i { position: absolute; inset: 0; transform-origin: left; transform: scaleX(var(--v, 0.5)); background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 6px; transition: transform 0.12s linear; }
+.param-bar b { position: absolute; left: var(--d, 50%); top: -1px; bottom: -1px; width: 2px; background: rgba(255, 255, 255, 0.5); }
+.param-sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hud-main { flex: 1; }
+.gestures { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.chip { --p: 0; position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 6px; border-radius: 10px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); color: var(--muted); font-size: 12px; overflow: hidden; transition: color 0.2s, border-color 0.2s, background 0.2s, transform 0.3s var(--spring), box-shadow 0.3s; }
+.chip svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.chip svg text { fill: currentColor; stroke: none; font: 700 9px Inter, sans-serif; }
+.chip em { font-style: normal; font-size: 10px; font-weight: 700; opacity: 0.6; }
+.chip i { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; transform-origin: left; transform: scaleX(var(--p)); background: currentColor; }
+.chip.active { color: var(--text); border-color: var(--accent); background: rgba(122, 162, 255, 0.16); transform: translateY(-2px) scale(1.04); box-shadow: 0 6px 18px rgba(122, 162, 255, 0.25); }
+.chip.active.left { border-color: var(--left); background: rgba(255, 162, 77, 0.15); box-shadow: 0 6px 18px rgba(255, 162, 77, 0.25); }
+.chip.fired { animation: fired 0.6s var(--ease); }
+@keyframes fired { 0% { background: rgba(94, 224, 160, 0.4); transform: scale(1.12); } }
+
+/* ---------- panel extras ---------- */
+.row { display: flex; gap: 8px; }
+.row .select { flex: 1; min-width: 0; }
+.btn.sm { width: 28px; height: 28px; font-size: 13px; font-weight: 700; }
+.panel-head h1 { flex: 1; }
+.panel-head { gap: 8px; }
+.sliders { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.sl { display: grid; grid-template-columns: 54px 1fr 64px; align-items: center; gap: 8px; padding: 2px 6px; border-radius: 8px; font-size: 12.5px; transition: background 0.25s; cursor: pointer; }
+.sl:hover { background: rgba(255, 255, 255, 0.04); }
+.sl.selected { background: rgba(122, 162, 255, 0.14); box-shadow: inset 0 0 0 1px rgba(122, 162, 255, 0.5); }
+.sl.sep { margin-top: 6px; }
+.sl label { color: var(--muted); cursor: pointer; }
+.sl.selected label { color: var(--text); font-weight: 600; }
+.sl output { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+.sl input[type='range'] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 4px; background: linear-gradient(90deg, var(--accent) var(--fill, 50%), rgba(255, 255, 255, 0.12) var(--fill, 50%)); outline-offset: 4px; cursor: pointer; }
+.sl input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5); transition: transform 0.2s var(--spring); }
+.sl input[type='range']:active::-webkit-slider-thumb { transform: scale(1.35); }
+.sl input[type='range']::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: #fff; }
+
+/* ---------- drop zone + help overlay ---------- */
+.dropzone { position: absolute; inset: 12px; z-index: 6; display: grid; place-items: center; border-radius: 20px; border: 2px dashed var(--accent); background: rgba(10, 12, 18, 0.78); backdrop-filter: blur(6px); font-size: 20px; font-weight: 600; opacity: 0; pointer-events: none; transform: scale(0.98); transition: opacity 0.2s, transform 0.3s var(--spring); }
+.dropzone.on { opacity: 1; transform: none; }
+.overlay-help { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(5, 6, 10, 0.7); backdrop-filter: blur(8px); animation: fade-in 0.25s var(--ease) both; }
+.overlay-help[hidden] { display: none; }
+@keyframes fade-in { from { opacity: 0; } }
+.help-card { position: relative; width: min(760px, 92vw); padding: 28px 32px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); animation: card-in 0.45s var(--spring) both; }
+.help-card h2 { margin: 0 0 12px; }
+.help-card h3 { margin: 14px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.help-card ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.help-card td { padding: 3px 12px 3px 0; color: var(--muted); }
+.help-cols { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; }
+.help-card .close { position: absolute; right: 14px; top: 14px; }
 
 /* ---------- debug ---------- */
 .debug { position: fixed; right: 316px; top: 12px; z-index: 20; padding: 10px 14px; border-radius: 12px; background: rgba(10, 12, 18, 0.85); border: 1px solid var(--line); backdrop-filter: blur(10px); font: 12px/1.6 ui-monospace, monospace; white-space: pre; animation: toast-in 0.35s var(--spring) both; }

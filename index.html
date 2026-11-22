@@ -21,13 +21,33 @@
           <span>◀ Left</span><span>Front</span><span>Right ▶</span>
         </div>
         <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+        <div class="dropzone" id="dropzone"><div>Drop an audio file to add it as a track</div></div>
       </main>
 
+      <section class="scope" aria-hidden="true">
+        <canvas id="wave"></canvas>
+        <canvas id="spectrum"></canvas>
+      </section>
+
       <section class="hud" id="hud">
+        <div class="param-card" id="paramCard">
+          <div class="param-top"><span class="param-name" id="paramName">Bass</span><span class="param-val" id="paramVal">+0.0 dB</span></div>
+          <div class="param-bar"><i id="paramFill"></i><b></b></div>
+          <div class="param-sub" id="paramSub">Left hand: hold up 1–5 fingers to switch</div>
+        </div>
+
         <div class="hud-main">
           <div class="hint" id="hint"><span id="hintText">Pinch near a sound and move your hand</span></div>
           <div class="readout" id="readout"></div>
+          <div class="gestures" id="gestureRow">
+            <div class="chip" id="g-grab" title="Right hand: pinch and move"><svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="3.2"/><circle cx="16" cy="12" r="3.2"/></svg><span>Grab &amp; move</span><em>R</em><i></i></div>
+            <div class="chip" id="g-swipe" title="Right hand: quick swipe"><svg viewBox="0 0 24 24"><path d="M4 12h16M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg><span>Swipe track</span><em>R</em><i></i></div>
+            <div class="chip" id="g-select" title="Left hand: hold up 1–5 fingers"><svg viewBox="0 0 24 24"><text x="12" y="16" text-anchor="middle">1-5</text></svg><span>Pick setting</span><em>L</em><i></i></div>
+            <div class="chip" id="g-adjust" title="Left hand: pinch and drag up / down"><svg viewBox="0 0 24 24"><path d="M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4"/></svg><span>Pinch &amp; drag</span><em>L</em><i></i></div>
+            <div class="chip" id="g-fist" title="Left hand: hold a fist to reset"><svg viewBox="0 0 24 24"><rect x="6" y="7" width="12" height="10" rx="3"/></svg><span>Fist = reset</span><em>L</em><i></i></div>
+          </div>
         </div>
+
         <div class="pills">
           <span class="pill" id="pillInput">Mouse</span>
           <span class="pill" id="pillFps">– fps</span>
@@ -38,6 +58,7 @@
       <aside class="panel" id="panel">
         <header class="panel-head">
           <h1>Spatial Mixer</h1>
+          <button class="btn icon sm" id="btnHelp" aria-label="Show help" title="Help (H)">?</button>
           <button class="btn icon" id="btnPlay" aria-label="Play or pause" title="Play / pause (Space)">
             <svg class="i-pause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>
             <svg class="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.5-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/></svg>
@@ -45,13 +66,27 @@
         </header>
 
         <div class="group">
-          <label class="group-label" for="trackSelect">Track</label>
-          <select id="trackSelect" class="select"></select>
+          <label class="group-label" for="trackSelect">Track <span class="muted">[ ] to switch</span></label>
+          <div class="row">
+            <select id="trackSelect" class="select"></select>
+            <button class="btn" id="btnUpload" title="Add an audio file">+ Add</button>
+          </div>
+          <input type="file" id="fileInput" accept="audio/*" hidden />
         </div>
 
         <div class="group">
           <div class="group-label">Sounds <span class="muted">click to focus</span></div>
           <ul class="sources" id="sourceList"></ul>
+        </div>
+
+        <div class="group">
+          <div class="group-label">Tone <span class="muted" id="toneTarget">focused sound</span></div>
+          <div class="seg" id="toneSeg" role="group" aria-label="Apply tone to">
+            <button class="seg-btn active" data-mode="focused">Focused</button>
+            <button class="seg-btn" data-mode="all">All sounds</button>
+            <span class="seg-thumb"></span>
+          </div>
+          <div class="sliders" id="sliders"></div>
         </div>
 
         <div class="group">
@@ -71,22 +106,49 @@
             <span class="seg-thumb"></span>
           </div>
         </div>
-
-        <details class="help" open>
-          <summary>Controls</summary>
-          <ul>
-            <li><b>Pinch</b> near a sound, then move your <b>right hand</b></li>
-            <li>Hand <b>left / right</b> → direction</li>
-            <li>Hand <b>up / down</b> → height</li>
-            <li>Hand <b>toward camera</b> → closer</li>
-            <li><kbd>M</kbd> mouse mode · click-drag, wheel = depth</li>
-            <li><kbd>S</kbd> HRTF / stereo · <kbd>Space</kbd> pause · <kbd>D</kbd> debug</li>
-          </ul>
-        </details>
       </aside>
     </div>
 
     <div class="debug" id="debug" hidden></div>
+
+    <div class="overlay-help" id="help" hidden>
+      <div class="help-card">
+        <button class="btn icon sm close" id="helpClose" aria-label="Close help">✕</button>
+        <h2>Controls</h2>
+        <div class="help-cols">
+          <div>
+            <h3>Hands</h3>
+            <ul>
+              <li><b>Right hand · pinch</b> near a sound, move to place it</li>
+              <li><b>Right hand · swipe</b> left / right to change track</li>
+              <li><b>Left hand · 1–5 fingers</b> (hold) → Bass, Treble, Pitch, Filter, Reverb</li>
+              <li><b>Left hand · pinch &amp; drag</b> up / down to change the value</li>
+              <li><b>Left hand · fist</b> (hold) resets the value</li>
+            </ul>
+            <h3>Mouse mode</h3>
+            <ul>
+              <li>Click-drag = pinch · wheel = depth</li>
+              <li><kbd>Shift</kbd> + move = left pinch · <kbd>1</kbd>–<kbd>5</kbd> / <kbd>0</kbd> = left fingers / fist</li>
+              <li><kbd>Alt</kbd> + fast move = swipe</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Keyboard</h3>
+            <table>
+              <tr><td><kbd>Space</kbd></td><td>Play / pause</td></tr>
+              <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Previous / next track</td></tr>
+              <tr><td><kbd>1</kbd>–<kbd>5</kbd></td><td>Select setting (camera mode)</td></tr>
+              <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Adjust selected setting</td></tr>
+              <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Move focused sound 10°</td></tr>
+              <tr><td><kbd>S</kbd></td><td>HRTF / stereo</td></tr>
+              <tr><td><kbd>M</kbd></td><td>Mouse / camera input</td></tr>
+              <tr><td><kbd>D</kbd></td><td>Debug panel</td></tr>
+              <tr><td><kbd>H</kbd> <kbd>?</kbd></td><td>This help</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="start" id="start">
       <div class="start-bg"></div>

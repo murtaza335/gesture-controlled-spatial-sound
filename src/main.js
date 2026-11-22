@@ -11,6 +11,7 @@ import { createRecognizer } from './gestures/recognizer.js';
 import { createController } from './controller/controller.js';
 import { createStage } from './visuals/stage2d.js';
 import { createOverlay } from './visuals/overlay2d.js';
+import { createScope } from './visuals/scope.js';
 import { createUI } from './ui/ui.js';
 import { createDebug } from './ui/debug.js';
 import { installKeyboard } from './ui/keyboard.js';
@@ -66,14 +67,44 @@ const actions = {
     debug.toggle(on);
   },
   setTrack(i) {
+    controller.reset();
     const sources = engine.loadTrack(i);
     store.set({ trackIndex: i, sources, focusedSourceId: sources[0]?.id ?? 0, grabbedSourceId: null });
   },
+  changeTrack(delta) {
+    const n = store.state.tracks.length;
+    if (n < 2) return;
+    const i = (store.state.trackIndex + delta + n) % n;
+    actions.setTrack(i);
+    ui.toast(`♪ ${store.state.tracks[i].name}`, { ms: 1800 });
+  },
+  async upload(file) {
+    ui.toast(`Adding ${file.name}…`, { ms: 1500 });
+    try {
+      const idx = await engine.addUploadedTrack(file);
+      store.set({ tracks: engine.tracks.map((t) => ({ name: t.name })) });
+      actions.setTrack(idx);
+      ui.toast(`♪ ${store.state.tracks[idx].name} — grab it and move it!`, { ms: 3000 });
+    } catch (err) {
+      console.warn(err);
+      ui.toast('This file could not be decoded. Try an MP3, WAV or OGG file.', { warn: true, ms: 5000 });
+    }
+  },
+  setApplyTone(mode) {
+    store.set({ applyToneTo: mode });
+  },
+  setParam: (k, v) => controller.setParam(k, v),
+  resetParam: (k) => controller.resetParam(k),
+  setPosition: (id, p) => controller.setPosition(id, p),
+  selectParam: (k) => k && controller.selectParam(k),
+  showHelp: (on) => ui.showHelp(on),
+  state: () => store.state,
 };
 
 const ui = createUI({ store, actions });
-const controller = createController({ store, engine, stage, ui });
+const controller = createController({ store, engine, stage, ui, actions });
 installKeyboard(actions);
+const scope = createScope($('wave'), $('spectrum'));
 
 function controllerReset() {
   if (controller.grabbing) controller.grabEnd();
@@ -197,7 +228,8 @@ function loop(now) {
     levels,
   });
   overlay.render(frame, gests);
-  ui.frame(levels, !!(frame.right || frame.left));
+  ui.frame(levels, !!(frame.right || frame.left), { gests, now, flash: controller.flash, bump: controller.bump });
+  scope.render(engine.analysers.master, engine.ctx.sampleRate);
   debug.update(now, {
     renderFps,
     trackFps: tracker?.stats.trackFps,
