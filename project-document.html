@@ -1,0 +1,559 @@
+<title>Gesture Spatial Audio Mixer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: project-spec document — sticky contents rail on the left, one reading column on the right; stacks on phones. */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --fg: #161a22;
+  --muted: #5a6270;
+  --line: #dde1e8;
+  --accent: #2f4fd8;      /* treble / spatial (cool) */
+  --accent-soft: #e6eafc;
+  --warm: #c2611d;        /* bass (warm) */
+  --warm-soft: #fbece0;
+  --must: #1f7a4d; --must-soft: #e2f3ea;
+  --should: #8a6400; --should-soft: #f7efd6;
+  --could: #5a6270; --could-soft: #eceef2;
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1218; --surface: #171b23; --fg: #e7eaf0; --muted: #9aa3b2; --line: #2a303b;
+    --accent: #8ea3ff; --accent-soft: #1d2440; --warm: #f0a061; --warm-soft: #3a2616;
+    --must: #6fd3a0; --must-soft: #143024; --should: #e6c463; --should-soft: #332a10;
+    --could: #a3abb8; --could-soft: #232833;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1218; --surface: #171b23; --fg: #e7eaf0; --muted: #9aa3b2; --line: #2a303b;
+  --accent: #8ea3ff; --accent-soft: #1d2440; --warm: #f0a061; --warm-soft: #3a2616;
+  --must: #6fd3a0; --must-soft: #143024; --should: #e6c463; --should-soft: #332a10;
+  --could: #a3abb8; --could-soft: #232833;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap {
+  max-width: 1120px; margin: 0 auto; padding-block: 48px 96px;
+  display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px;
+}
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; padding-block: 28px 64px; } }
+
+/* Contents rail */
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; }
+nav.toc .label { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: s; }
+nav.toc li { counter-increment: s; }
+nav.toc a { display: flex; gap: 10px; padding: 5px 8px; border-radius: 6px; color: var(--muted); text-decoration: none; }
+nav.toc a::before { content: counter(s, decimal-leading-zero); font-family: var(--font-mono); font-size: 12px; color: var(--accent); padding-top: 1px; }
+nav.toc a:hover, nav.toc a:focus-visible { background: var(--accent-soft); color: var(--fg); outline: none; }
+@media (max-width: 860px) { nav.toc { position: static; } nav.toc ol { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); } }
+
+main { min-width: 0; max-width: 760px; }
+section { padding-top: 40px; scroll-margin-top: 24px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; letter-spacing: -.02em; }
+h2 { font-size: 26px; font-weight: 600; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 18px; display: flex; gap: 12px; align-items: baseline; }
+h2 .n { font-family: var(--font-mono); font-size: 14px; color: var(--accent); font-weight: 500; }
+h3 { font-size: 18px; font-weight: 600; margin: 26px 0 10px; }
+p { margin: 0 0 14px; max-width: 68ch; }
+ul.list { margin: 0 0 14px; padding-left: 20px; max-width: 68ch; }
+ul.list li { margin-bottom: 6px; }
+strong { font-weight: 600; }
+code, .mono { font-family: var(--font-mono); font-size: .88em; }
+code { background: var(--could-soft); padding: 1px 5px; border-radius: 4px; }
+.muted { color: var(--muted); }
+
+/* Header */
+header.doc { display: grid; gap: 18px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.subtitle { font-size: 18px; color: var(--muted); max-width: 62ch; margin: 0; }
+.meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 24px; margin: 6px 0 0; }
+.meta div { display: grid; gap: 2px; }
+.meta dt { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.meta dd { margin: 0; font-weight: 500; }
+
+/* Hero figure: head with azimuth ring */
+.figure { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; grid-template-columns: 220px minmax(0,1fr); gap: 24px; align-items: center; margin-top: 8px; }
+.figure svg { width: 100%; max-width: 220px; height: auto; display: block; }
+.figure p { font-size: 14px; color: var(--muted); margin: 0; }
+@media (max-width: 560px) { .figure { grid-template-columns: minmax(0,1fr); justify-items: center; } }
+
+/* Tables */
+.tbl { overflow-x: auto; margin: 0 0 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 560px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 500; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.id { font-family: var(--font-mono); font-size: 13px; color: var(--accent); white-space: nowrap; }
+td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.must { background: var(--must-soft); color: var(--must); }
+.pill.should { background: var(--should-soft); color: var(--should); }
+.pill.could { background: var(--could-soft); color: var(--could); }
+.hand { display: inline-block; font-family: var(--font-mono); font-size: 11px; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.hand.r { background: var(--accent-soft); color: var(--accent); }
+.hand.l { background: var(--warm-soft); color: var(--warm); }
+
+/* Scope columns */
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 14px; }
+.col { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; background: var(--surface); min-width: 0; }
+.col h3 { margin-top: 0; font-size: 16px; }
+.col ul { margin: 0; padding-left: 18px; font-size: 14.5px; }
+.col li { margin-bottom: 5px; }
+.col.out { background: transparent; border-style: dashed; }
+
+/* Pipeline */
+.pipe { display: grid; gap: 0; margin: 8px 0 18px; }
+.stage { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 14px; position: relative; padding-bottom: 16px; }
+.stage::before { content: ""; position: absolute; left: 16px; top: 30px; bottom: 0; width: 2px; background: var(--line); }
+.stage:last-child::before { display: none; }
+.stage .dot { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-mono); font-size: 12px; background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.stage.audio .dot { background: var(--warm-soft); color: var(--warm); }
+.stage h4 { margin: 5px 0 2px; font-family: var(--font-display); font-size: 16px; font-weight: 600; }
+.stage p { margin: 0; font-size: 14.5px; color: var(--muted); }
+
+pre.code { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.55; margin: 0 0 18px; }
+
+/* Timeline */
+.weeks { display: grid; gap: 12px; }
+.week { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 16px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.week .w { font-family: var(--font-display); font-weight: 600; font-size: 15px; }
+.week .w span { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--muted); font-weight: 400; letter-spacing: .05em; }
+.week ul { margin: 0; padding-left: 18px; font-size: 14.5px; }
+.week .gate { font-size: 13px; color: var(--must); margin-top: 6px; font-family: var(--font-mono); }
+
+.note { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 14.5px; margin: 0 0 18px; max-width: 68ch; }
+.note.warm { border-color: var(--warm); background: var(--warm-soft); }
+
+footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+
+a { color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Contents">
+    <div class="label">Contents</div>
+    <ol>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#objectives">Objectives</a></li>
+      <li><a href="#scope">Scope</a></li>
+      <li><a href="#functional">Functional requirements</a></li>
+      <li><a href="#nonfunctional">Non-functional requirements</a></li>
+      <li><a href="#gestures">Gesture map</a></li>
+      <li><a href="#approach">Approach &amp; architecture</a></li>
+      <li><a href="#stack">Libraries &amp; tech</a></li>
+      <li><a href="#structure">Code structure</a></li>
+      <li><a href="#evaluation">Evaluation plan</a></li>
+      <li><a href="#timeline">Timeline</a></li>
+      <li><a href="#risks">Risks</a></li>
+      <li><a href="#applications">Applications</a></li>
+      <li><a href="#open">Open decisions</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="doc">
+      <div class="eyebrow">Project proposal &amp; requirements · BS Computer Science, 5th semester · HCI</div>
+      <h1>Gesture-Controlled Spatial Audio Mixer</h1>
+      <p class="subtitle">A browser application that tracks both hands through a webcam, places sounds around the listener's head in headphones, shapes their tone with gestures, and shows the sound as a live visual.</p>
+      <dl class="meta">
+        <div><dt>Full title</dt><dd>Gesture-Controlled Spatial Audio Mixer with Real-Time Visualization and Binaural Rendering</dd></div>
+        <div><dt>Related list items</dt><dd>#4, #6, #12, #26</dd></div>
+        <div><dt>Difficulty</dt><dd>≈ 5 / 10 (core), 6 / 10 with extras</dd></div>
+        <div><dt>Duration</dt><dd>4–5 weeks, 2–3 students</dd></div>
+      </dl>
+    </header>
+
+    <section id="overview">
+      <h2><span class="n">01</span>Overview</h2>
+      <h3>Problem statement</h3>
+      <p>Most audio interfaces rely on small buttons, knobs and sliders, and they present sound as flat left/right stereo. That is a barrier for people who cannot see a screen or cannot operate small controls, and it hides the spatial nature of sound from everyone else.</p>
+      <p>This project builds a touchless interface in which the user's hands become the controls. The right hand moves a sound source around the listener's head using binaural (HRTF) rendering, so it is heard as coming from a direction. The left hand shapes the sound: bass, treble, pitch, filter and reverb. A live waveform, spectrum and 3D view show what is happening.</p>
+
+      <div class="figure" role="figure" aria-label="Top-down view of the listener with azimuth angles">
+        <svg viewBox="0 0 220 220" aria-hidden="true">
+          <circle cx="110" cy="110" r="88" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+          <circle cx="110" cy="110" r="56" fill="none" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/>
+          <line x1="110" y1="16" x2="110" y2="204" stroke="var(--line)" stroke-width="1"/>
+          <line x1="16" y1="110" x2="204" y2="110" stroke="var(--line)" stroke-width="1"/>
+          <text x="110" y="11" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">0° front</text>
+          <text x="214" y="114" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">90°</text>
+          <text x="6" y="114" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">−90°</text>
+          <text x="110" y="217" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">180°</text>
+          <ellipse cx="110" cy="110" rx="17" ry="20" fill="var(--surface)" stroke="var(--fg)" stroke-width="1.5"/>
+          <path d="M104 91 L110 83 L116 91" fill="none" stroke="var(--fg)" stroke-width="1.5"/>
+          <rect x="89" y="104" width="5" height="12" rx="2" fill="var(--fg)"/>
+          <rect x="126" y="104" width="5" height="12" rx="2" fill="var(--fg)"/>
+          <line x1="110" y1="110" x2="172" y2="48" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <circle cx="172" cy="48" r="9" fill="var(--accent)" opacity=".18"/>
+          <circle cx="172" cy="48" r="5" fill="var(--accent)"/>
+          <path d="M110 70 A40 40 0 0 1 138 82" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+          <text x="140" y="74" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent)">45°</text>
+        </svg>
+        <p><strong style="color:var(--fg)">How position becomes sound.</strong> The sound source (blue dot) sits at an azimuth angle around the head. Moving the right hand left or right sweeps it around this ring; hand height sets elevation; how close the hand is to the camera sets distance (inner vs. outer ring). Left/right is the most reliable axis to hear, so the demo is built around it.</p>
+      </div>
+
+      <h3>Primary use case</h3>
+      <p><strong>Accessibility.</strong> Spatial-audio games and navigation for blind and visually impaired users, where sounds are placed and found in space by gesture. This matches the course's focus on intelligent interfaces for impaired users and gives a clear target group for the user study. <strong>Music mixing</strong> (placing instruments in 3D and shaping their tone by hand) is the secondary demo.</p>
+    </section>
+
+    <section id="objectives">
+      <h2><span class="n">02</span>Objectives</h2>
+      <ul class="list">
+        <li>Track both hands in real time from a standard laptop webcam, entirely in the browser.</li>
+        <li>Map hand position to a 3D sound position (azimuth, elevation, distance) and render it binaurally for headphones.</li>
+        <li>Control tone (bass / mid / treble, pitch, filter, reverb, volume) with a separate set of left-hand gestures.</li>
+        <li>Visualize the audio as a waveform, a frequency spectrum and a 3D scene that links the visual to the sound's position.</li>
+        <li>Offer an accessibility mode that can be used without looking at the screen.</li>
+        <li>Evaluate the interface with real users: usability (SUS), gesture vs. slider performance, and sound-localization accuracy.</li>
+      </ul>
+    </section>
+
+    <section id="scope">
+      <h2><span class="n">03</span>Scope</h2>
+      <div class="cols">
+        <div class="col">
+          <h3>Core (MVP)</h3>
+          <ul>
+            <li>Webcam hand tracking in the browser</li>
+            <li>One sound source moved by the right hand</li>
+            <li>HRTF binaural rendering in headphones</li>
+            <li>Pinch to grab / release the source</li>
+            <li>Simple 2D view of hand and source</li>
+            <li>Smoothing of tracking jitter</li>
+          </ul>
+        </div>
+        <div class="col">
+          <h3>Extended (planned)</h3>
+          <ul>
+            <li>Left-hand tone controls (EQ, pitch, filter, reverb)</li>
+            <li>Waveform + spectrum visualizer</li>
+            <li>3D scene in Three.js</li>
+            <li>Multiple sound sources / instrument stems</li>
+            <li>Swipe to change track</li>
+            <li>On-screen gesture labels and help</li>
+          </ul>
+        </div>
+        <div class="col">
+          <h3>Stretch (pick one)</h3>
+          <ul>
+            <li>Head tracking so sounds stay fixed in the room</li>
+            <li>Accessibility game: find and catch sounds by ear</li>
+            <li>True pitch-only shifting</li>
+          </ul>
+        </div>
+        <div class="col out">
+          <h3>Out of scope</h3>
+          <ul>
+            <li>Mobile / tablet support</li>
+            <li>Multi-user or networked sessions</li>
+            <li>Personalized (measured) HRTFs</li>
+            <li>Depth cameras or extra hardware</li>
+            <li>Real-world indoor navigation</li>
+          </ul>
+        </div>
+      </div>
+      <p class="muted">Head tracking, multi-user and mobile support each add several days. They are added only once the core works.</p>
+    </section>
+
+    <section id="functional">
+      <h2><span class="n">04</span>Functional requirements</h2>
+      <p>Priority uses MoSCoW: <span class="pill must">Must</span> is the MVP, <span class="pill should">Should</span> is the planned project, <span class="pill could">Could</span> is a stretch goal.</p>
+
+      <h3>Input &amp; tracking</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+        <tbody>
+          <tr><td class="id">FR-01</td><td>The system shall capture video from the user's webcam after the user grants permission.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-02</td><td>The system shall detect up to two hands and report 21 landmarks per hand, with handedness (left / right), in real time.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-03</td><td>The system shall smooth landmark positions to remove jitter (One Euro filter) before they drive audio.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-04</td><td>The system shall estimate hand depth from the apparent hand size on screen.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-05</td><td>The system shall offer a short calibration step to set the user's comfortable range of motion.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-06</td><td>The system shall track head rotation and rotate the listener so sounds stay fixed in the room.</td><td><span class="pill could">Could</span></td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Gesture recognition</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+        <tbody>
+          <tr><td class="id">FR-07</td><td>The system shall recognize a pinch (thumb tip to index tip) to grab and release a sound source or control.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-08</td><td>A control shall change only while it is engaged by a pinch or grab, so ordinary hand movement does not trigger it.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-09</td><td>The system shall recognize a horizontal swipe to switch to the next or previous track.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-10</td><td>The system shall recognize open / closed hand, finger spread, hand tilt and wrist twist on the left hand for tone controls.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-11</td><td>The gesture set shall be limited to 4–6 clearly distinct gestures, each shown with an on-screen label.</td><td><span class="pill should">Should</span></td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Spatial audio</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+        <tbody>
+          <tr><td class="id">FR-12</td><td>The system shall play a built-in audio clip and allow the user to load their own audio file.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-13</td><td>The system shall map right-hand x → azimuth, y → elevation and depth → distance of the sound source.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-14</td><td>The system shall render the source binaurally using HRTF panning for headphone playback.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-15</td><td>The system shall provide a stereo-pan + volume fallback mode for comparison and for weak devices.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-16</td><td>The system shall support several simultaneous sources (e.g. instrument stems), each grabbed and placed independently.</td><td><span class="pill should">Should</span></td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Tone &amp; effects</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+        <tbody>
+          <tr><td class="id">FR-17</td><td>The system shall control bass, mid and treble with low-shelf, peaking and high-shelf filters.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-18</td><td>The system shall control volume through a gain stage.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-19</td><td>The system shall control pitch (playback rate in the basic version).</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-20</td><td>The system shall provide a low-pass filter sweep (muffled to clear) and a reverb wet/dry mix.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-21</td><td>The system shall shift pitch without changing speed.</td><td><span class="pill could">Could</span></td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Visualization &amp; interface</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+        <tbody>
+          <tr><td class="id">FR-22</td><td>The interface shall show the camera feed (or hand skeleton), the hand landmarks and the current sound-source position.</td><td><span class="pill must">Must</span></td></tr>
+          <tr><td class="id">FR-23</td><td>The interface shall show a live waveform (time domain) and spectrum bars (frequency domain).</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-24</td><td>The interface shall show a 3D scene with the listener at the center, a ring that pulses with the music, and a glowing source placed where the hand is.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-25</td><td>Colors shall follow the audio: warm for bass, cool for treble, brightness for loudness.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-26</td><td>The interface shall show the current value of each tone control and which control is engaged.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-27</td><td>A slider-based control panel shall offer the same controls, as the baseline for the user study.</td><td><span class="pill should">Should</span></td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Accessibility &amp; study support</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+        <tbody>
+          <tr><td class="id">FR-28</td><td>An accessibility mode shall give audio feedback (short cues, spoken state) so the app can be used without the screen.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-29</td><td>A localization test mode shall play a sound at a hidden position, let the user point to where they hear it, and record the angular error.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-30</td><td>The system shall log task times and errors during study sessions and export them as CSV.</td><td><span class="pill should">Should</span></td></tr>
+          <tr><td class="id">FR-31</td><td>An audio game shall ask the user to find and catch sounds placed in space.</td><td><span class="pill could">Could</span></td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="nonfunctional">
+      <h2><span class="n">05</span>Non-functional requirements</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>ID</th><th>Area</th><th>Target</th></tr></thead>
+        <tbody>
+          <tr><td class="id">NFR-01</td><td>Latency</td><td>Hand movement to audible change under ~100 ms; everything runs in the browser with no server round trip.</td></tr>
+          <tr><td class="id">NFR-02</td><td>Frame rate</td><td>Hand tracking ≥ 25 fps and visuals ≥ 30 fps on a mid-range laptop; visuals degrade before audio does.</td></tr>
+          <tr><td class="id">NFR-03</td><td>Audio quality</td><td>No clicks or zipper noise: all parameter changes ramp smoothly.</td></tr>
+          <tr><td class="id">NFR-04</td><td>Platform</td><td>Current desktop Chrome / Edge (primary), Firefox (secondary); headphones required.</td></tr>
+          <tr><td class="id">NFR-05</td><td>Privacy</td><td>Video is processed locally and never uploaded or stored.</td></tr>
+          <tr><td class="id">NFR-06</td><td>Usability</td><td>A new user can grab and move a sound within 2 minutes with the built-in hints. SUS score target ≥ 68 (above average).</td></tr>
+          <tr><td class="id">NFR-07</td><td>Robustness</td><td>Losing a hand for a moment holds the last position instead of jumping; works in normal indoor light.</td></tr>
+          <tr><td class="id">NFR-08</td><td>Maintainability</td><td>Tracking, gestures, audio and visuals are separate modules with clear interfaces.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="gestures">
+      <h2><span class="n">06</span>Gesture map</h2>
+      <p>The two hands have separate jobs so gestures do not conflict: the <span class="hand r">right hand</span> decides <em>where</em> the sound is, the <span class="hand l">left hand</span> decides <em>how it sounds</em>.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Hand</th><th>Gesture</th><th>Controls</th><th>Audio node</th></tr></thead>
+        <tbody>
+          <tr><td><span class="hand r">Right</span></td><td>Pinch, then move left / right</td><td>Azimuth (around the head)</td><td><code>PannerNode</code> (HRTF)</td></tr>
+          <tr><td><span class="hand r">Right</span></td><td>Pinch, then move up / down</td><td>Elevation</td><td><code>PannerNode</code></td></tr>
+          <tr><td><span class="hand r">Right</span></td><td>Move toward / away from camera</td><td>Distance and volume</td><td><code>PannerNode</code> + <code>GainNode</code></td></tr>
+          <tr><td><span class="hand r">Right</span></td><td>Horizontal swipe</td><td>Next / previous track</td><td>Source switch</td></tr>
+          <tr><td><span class="hand l">Left</span></td><td>Raise / lower with 1, 2 or 3 fingers up</td><td>Bass, mid or treble</td><td><code>BiquadFilterNode</code> (lowshelf / peaking / highshelf)</td></tr>
+          <tr><td><span class="hand l">Left</span></td><td>Wrist twist</td><td>Pitch</td><td><code>playbackRate</code> or Tone.js <code>PitchShift</code></td></tr>
+          <tr><td><span class="hand l">Left</span></td><td>Hand tilt</td><td>Filter sweep (muffled ↔ clear)</td><td><code>BiquadFilterNode</code> (lowpass)</td></tr>
+          <tr><td><span class="hand l">Left</span></td><td>Open / close hand</td><td>Reverb amount</td><td><code>ConvolverNode</code> wet/dry</td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">This is the starting set. It will be trimmed to the 4–6 gestures that test best with users; how understandable the gestures are is itself part of the evaluation.</p>
+    </section>
+
+    <section id="approach">
+      <h2><span class="n">07</span>Approach &amp; architecture</h2>
+      <p>The two hard problems, hand tracking and HRTF rendering, are already solved by mature libraries. The work is connecting them, designing the mapping from gestures to sound, and making the interface feel good. Everything runs client-side in one browser tab to keep latency low.</p>
+
+      <h3>Processing pipeline (every video frame)</h3>
+      <div class="pipe">
+        <div class="stage"><div class="dot">1</div><div><h4>Capture</h4><p>Webcam frames via <code>getUserMedia</code>, mirrored so movement feels natural.</p></div></div>
+        <div class="stage"><div class="dot">2</div><div><h4>Hand tracking</h4><p>MediaPipe Hand Landmarker returns 21 3D landmarks and handedness for each hand.</p></div></div>
+        <div class="stage"><div class="dot">3</div><div><h4>Smoothing</h4><p>A One Euro filter on each landmark removes jitter while staying responsive to fast moves. Depth comes from hand size (wrist to middle-finger base distance).</p></div></div>
+        <div class="stage"><div class="dot">4</div><div><h4>Gesture recognition</h4><p>Rule-based detectors (pinch distance, finger states, swipe velocity, tilt and twist angles) with hysteresis and debouncing to avoid accidental triggers.</p></div></div>
+        <div class="stage"><div class="dot">5</div><div><h4>Mapping</h4><p>Normalized hand values are mapped to audio parameters with calibrated ranges and response curves (e.g. logarithmic for frequency and volume).</p></div></div>
+        <div class="stage audio"><div class="dot">6</div><div><h4>Audio engine</h4><p>The Web Audio graph is updated with smooth parameter ramps and rendered binaurally to the headphones.</p></div></div>
+        <div class="stage audio"><div class="dot">7</div><div><h4>Visualization</h4><p>An analyser tap feeds the waveform, spectrum and 3D scene, drawn on each animation frame.</p></div></div>
+      </div>
+
+      <h3>Audio graph (per sound source)</h3>
+<pre class="code">AudioBufferSource / MediaElementSource
+  → BiquadFilter (lowshelf, bass)
+  → BiquadFilter (peaking, mid)
+  → BiquadFilter (highshelf, treble)
+  → BiquadFilter (lowpass, filter sweep)
+  → split ─┬─ dry ───────────────┐
+           └─ Convolver (reverb) ┴→ Gain (volume)
+  → Panner (panningModel = "HRTF", distanceModel = "inverse")
+  → master Gain → AnalyserNode → destination (headphones)
+
+AudioListener ← head-tracking yaw (stretch goal)</pre>
+
+      <h3>Coordinate mapping</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Hand input (normalized)</th><th>Sound parameter</th><th>Range</th></tr></thead>
+        <tbody>
+          <tr><td>x: 0 (left) → 1 (right)</td><td>Azimuth</td><td class="num">−90° → +90° (front half; ±180° with an "orbit" mode)</td></tr>
+          <tr><td>y: 0 (bottom) → 1 (top)</td><td>Elevation</td><td class="num">−30° → +45°</td></tr>
+          <tr><td>Hand size: small → large</td><td>Distance</td><td class="num">5 m → 0.5 m</td></tr>
+        </tbody>
+      </table></div>
+      <p>Spherical values are converted to the panner's x / y / z position each frame. The 3D view uses the same coordinates, so what the user sees matches what they hear.</p>
+
+      <div class="note"><strong>Why the browser and JavaScript.</strong> Python with OpenCV would also work, but it would need a separate audio engine and a bridge to the UI, which adds latency and setup. In the browser, tracking, audio and visuals share one event loop and the app runs from a link with no install.</div>
+
+      <h3>Working with Claude</h3>
+      <p>Claude will be used to write and debug the MediaPipe, Web Audio and Three.js code, design the gesture mapping, and draft the study questionnaire and report. The team is responsible for everything that needs ears, eyes and hands: testing with headphones and a camera, tuning smoothing, sensitivity and range by feel, and running the user study with real participants.</p>
+    </section>
+
+    <section id="stack">
+      <h2><span class="n">08</span>Libraries &amp; tech</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Layer</th><th>Technology</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td>Language</td><td>JavaScript (ES modules), optionally TypeScript</td><td>All application code</td></tr>
+          <tr><td>Build / dev server</td><td>Vite</td><td>Local dev with hot reload; HTTPS / localhost needed for camera access</td></tr>
+          <tr><td>Hand tracking</td><td>MediaPipe Tasks Vision, Hand Landmarker (<code>@mediapipe/tasks-vision</code>)</td><td>21 landmarks per hand, two hands, GPU-accelerated in the browser</td></tr>
+          <tr><td>Head tracking (stretch)</td><td>MediaPipe Face Landmarker</td><td>Head yaw / pitch to rotate the audio listener</td></tr>
+          <tr><td>Smoothing</td><td>One Euro filter (small custom module)</td><td>Jitter removal with low lag</td></tr>
+          <tr><td>Spatial audio</td><td>Web Audio API: <code>PannerNode</code> (HRTF), <code>AudioListener</code></td><td>Binaural rendering for headphones</td></tr>
+          <tr><td>Tone &amp; effects</td><td>Web Audio API: <code>BiquadFilterNode</code>, <code>GainNode</code>, <code>ConvolverNode</code></td><td>EQ, filter sweep, volume, reverb</td></tr>
+          <tr><td>Pitch shifting</td><td><code>playbackRate</code> (basic); Tone.js <code>PitchShift</code> or an <code>AudioWorklet</code> (advanced)</td><td>Pitch control, with or without changing speed</td></tr>
+          <tr><td>Analysis</td><td>Web Audio <code>AnalyserNode</code></td><td>Waveform and frequency data for visuals</td></tr>
+          <tr><td>2D visuals</td><td>Canvas 2D</td><td>Hand skeleton overlay, waveform, spectrum bars</td></tr>
+          <tr><td>3D visuals</td><td>Three.js</td><td>Listener, pulsing ring, glowing sound sources</td></tr>
+          <tr><td>Study &amp; analysis</td><td>CSV export; spreadsheet or Python (pandas, matplotlib)</td><td>Task times, errors, SUS scores, localization error</td></tr>
+          <tr><td>Hardware</td><td>Laptop webcam, wired headphones</td><td>Input and binaural output (wired avoids Bluetooth delay)</td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">Alternatives considered for spatial audio: Resonance Audio, OpenAL Soft and Steam Audio. The built-in Web Audio HRTF panner is enough for this project and needs no extra dependency. Exact library versions will be pinned when the project is set up.</p>
+    </section>
+
+    <section id="structure">
+      <h2><span class="n">09</span>Proposed code structure</h2>
+<pre class="code">gesture-spatial-audio/
+├── index.html
+├── vite.config.js
+├── public/
+│   ├── audio/          sample tracks and instrument stems
+│   └── impulses/       reverb impulse responses
+└── src/
+    ├── main.js         app start-up, main loop
+    ├── tracking/
+    │   ├── handTracker.js     MediaPipe Hand Landmarker wrapper
+    │   ├── headTracker.js     (stretch) Face Landmarker wrapper
+    │   └── oneEuroFilter.js
+    ├── gestures/
+    │   ├── recognizer.js      pinch, swipe, finger state, tilt, twist
+    │   └── calibration.js
+    ├── mapping/
+    │   └── handToAudio.js     ranges, curves, spherical → x/y/z
+    ├── audio/
+    │   ├── engine.js          AudioContext, master bus, analyser
+    │   ├── soundSource.js     per-source chain (EQ → filter → reverb → panner)
+    │   └── effects.js
+    ├── visuals/
+    │   ├── overlay2d.js       hand skeleton, labels
+    │   ├── spectrum.js        waveform + spectrum bars
+    │   └── scene3d.js         Three.js scene
+    ├── ui/
+    │   ├── controls.js        slider baseline panel
+    │   └── accessibility.js   audio cues, spoken state
+    └── study/
+        ├── localizationTest.js
+        └── logger.js          CSV export</pre>
+    </section>
+
+    <section id="evaluation">
+      <h2><span class="n">10</span>Evaluation plan</h2>
+      <p>The study targets 8–12 participants, including visually impaired users if they can be recruited, otherwise sighted users who are blindfolded for the accessibility tasks.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Study</th><th>Method</th><th>Measures</th></tr></thead>
+        <tbody>
+          <tr><td>Gesture vs. sliders</td><td>Within-subjects: each user completes the same tasks (e.g. "place the drums to your left and boost the bass") with gestures and with the slider panel, in counterbalanced order</td><td>Task completion time, accuracy, errors</td></tr>
+          <tr><td>Usability</td><td>System Usability Scale questionnaire after each condition, plus short interviews</td><td>SUS score (0–100), qualitative feedback</td></tr>
+          <tr><td>Sound localization</td><td>A sound plays at a hidden position; the user points where they hear it. HRTF vs. stereo-pan conditions</td><td>Angular error (°), front/back confusion rate</td></tr>
+          <tr><td>Gesture learnability</td><td>Users try each gesture after a short demo</td><td>Success rate on first try, accidental triggers per minute</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="timeline">
+      <h2><span class="n">11</span>Timeline</h2>
+      <p>Estimates assume 2–3 students working part-time with Claude's help. Without Claude the same plan is roughly 8–10 weeks.</p>
+      <div class="weeks">
+        <div class="week"><div class="w">Week 1<span>MVP</span></div><div><ul><li>Hand tracking running in the browser (2–4 h)</li><li>Right hand moves one HRTF sound source (3–6 h)</li><li>Pinch to grab, basic 2D view, smoothing</li></ul><div class="gate">Gate: sound moves around the head with the hand</div></div></div>
+        <div class="week"><div class="w">Week 2<span>Core</span></div><div><ul><li>Gesture set: pinch, swipe, distance → volume (4–8 h)</li><li>Multiple sources, track switching</li><li>Waveform and spectrum visualizer (1–2 days)</li><li>Latency tuning and bug fixing</li></ul><div class="gate">Gate: two sources placed independently, visuals live</div></div></div>
+        <div class="week"><div class="w">Week 3<span>Tone + 3D</span></div><div><ul><li>Left-hand tone controls: EQ, pitch, filter, reverb (1–2 days)</li><li>Two-hand gesture design and tuning (1–2 days)</li><li>Three.js scene with color mapping</li><li>Slider baseline panel and study logging</li></ul><div class="gate">Gate: feature-complete planned scope</div></div></div>
+        <div class="week"><div class="w">Week 4<span>Extra + study</span></div><div><ul><li>One stretch feature: head tracking <em>or</em> accessibility mode / game</li><li>Pilot study, then the full user study</li></ul><div class="gate">Gate: study data collected</div></div></div>
+        <div class="week"><div class="w">Week 5<span>Report</span></div><div><ul><li>Analyse results, write report, prepare demo</li><li>Buffer for slippage</li></ul><div class="gate">Gate: submission and demo</div></div></div>
+      </div>
+    </section>
+
+    <section id="risks">
+      <h2><span class="n">12</span>Risks &amp; mitigations</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Webcam depth is noisy; near/far is the weakest axis</td><td>Distance control feels jumpy</td><td>Use hand size as a proxy, heavier smoothing on that axis, narrow range, calibration step</td></tr>
+          <tr><td>Front/back and elevation are hard to hear with generic HRTFs</td><td>Users misjudge direction</td><td>Build the demo around left/right; treat elevation as a bonus; add visual and reverb cues; measure it in the study</td></tr>
+          <tr><td>End-to-end latency (camera + tracking + audio)</td><td>Interaction feels laggy</td><td>Keep everything in the browser, use GPU delegate, wired headphones, short parameter ramps</td></tr>
+          <tr><td>Too many gestures</td><td>Users get confused</td><td>Limit to 4–6, label them on screen, test learnability</td></tr>
+          <tr><td>Accidental triggers</td><td>Controls change unintentionally</td><td>Pinch-to-engage, hysteresis thresholds, dead zones</td></tr>
+          <tr><td>Pitch shifting changes speed</td><td>Music sounds wrong</td><td>Accept with <code>playbackRate</code> for the core; Tone.js PitchShift as an upgrade</td></tr>
+          <tr><td>Weak laptops stutter</td><td>Low frame rate</td><td>Lightweight visuals, a low-quality mode, 2D fallback instead of 3D</td></tr>
+          <tr><td>Scope creep</td><td>Core not finished on time</td><td>Strict MVP gate in week 1; only one stretch feature</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="applications">
+      <h2><span class="n">13</span>Applications</h2>
+      <div class="cols">
+        <div class="col"><h3>Accessibility</h3><ul><li>Spatial audio navigation cues for blind users</li><li>Audio games for visually impaired players</li><li>Hands-free media control</li><li>Sound-localization training (e.g. after cochlear implants)</li></ul></div>
+        <div class="col"><h3>Music &amp; creative</h3><ul><li>Gesture DJ and live performance tool</li><li>Spatial mixing for producers</li><li>Interactive installations and museum exhibits</li></ul></div>
+        <div class="col"><h3>Games, VR &amp; AR</h3><ul><li>Prototyping immersive game audio</li><li>Virtual instruments that follow the hands</li></ul></div>
+        <div class="col"><h3>Education &amp; health</h3><ul><li>Teaching acoustics: pitch, frequency, waveforms</li><li>Music education on EQ and pitch</li><li>Relaxation soundscapes; hand rehabilitation exercises</li></ul></div>
+      </div>
+      <p class="muted">Touchless control also suits places where hands are busy or dirty: kitchens, workshops, operating rooms, and in-car audio.</p>
+    </section>
+
+    <section id="open">
+      <h2><span class="n">14</span>Open decisions</h2>
+      <ul class="list">
+        <li><strong>Team size and roles.</strong> Suggested split: tracking &amp; gestures / audio engine / visuals &amp; study.</li>
+        <li><strong>Stretch feature.</strong> Head tracking or the accessibility game, not both.</li>
+        <li><strong>Participants.</strong> Whether visually impaired participants can be recruited, or blindfolded sighted users will stand in.</li>
+        <li><strong>Audio content.</strong> Which royalty-free tracks and instrument stems to use for the mixing demo.</li>
+        <li><strong>Course fit.</strong> Confirm with the instructor that this can be proposed as a variation of list items #4 / #6 / #26.</li>
+      </ul>
+    </section>
+
+    <footer>Prepared from the team's planning discussion. Estimates are planning figures and will be revised after the week 1 MVP.</footer>
+  </main>
+</div>
