@@ -7,7 +7,7 @@ import { palmCenter } from '../gestures/features.js';
  * Mouse over the stage = right palm position, wheel = depth, button = pinch.
  * Keys 1–5 / 0 = left hand finger count / fist.
  */
-export function createMouseSimulator(stageEl) {
+export function createMouseSimulator(stageEl, getPlot) {
   const sim = {
     enabled: false,
     fx: 0.5, // pointer position in stage fractions (0..1, y down)
@@ -22,8 +22,9 @@ export function createMouseSimulator(stageEl) {
 
   const onMove = (e) => {
     const r = stageEl.getBoundingClientRect();
-    sim.fx = (e.clientX - r.left) / r.width;
-    sim.fy = (e.clientY - r.top) / r.height;
+    const p = getPlot();
+    sim.fx = (e.clientX - r.left - p.x) / p.w;
+    sim.fy = (e.clientY - r.top - p.y) / p.h;
     sim.pointerInside = sim.fx >= 0 && sim.fx <= 1 && sim.fy >= 0 && sim.fy <= 1;
   };
   stageEl.addEventListener('pointerdown', (e) => {

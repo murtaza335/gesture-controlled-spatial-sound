@@ -22,7 +22,7 @@ const videoEl = $('video');
 
 const stage = createStage($('stage'));
 const overlay = createOverlay($('overlay'));
-const mouse = createMouseSimulator($('stage'));
+const mouse = createMouseSimulator($('stage'), () => stage.plotRect());
 const smoother = new HandSmoother(CONFIG.SMOOTH, CONFIG.SMOOTH_DEPTH);
 const recognizer = createRecognizer(CONFIG);
 const debug = createDebug($('debug'));

@@ -54,6 +54,8 @@ export function createStage(canvas) {
 
   return {
     resize,
+    /** Plot area in CSS px relative to the canvas (what az/el actually span). */
+    plotRect: plot,
     /** Nearest source to an az/el, in stage-normalized units (GRAB_RADIUS is a fraction of `unit`). */
     nearest(az, el, sources) {
       const c = toPx(az, el);
