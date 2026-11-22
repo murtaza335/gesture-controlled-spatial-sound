@@ -225,6 +225,47 @@ kbd { background: rgba(255, 255, 255, 0.1); border: 1px solid var(--line); borde
 .calib-dots i.now { background: var(--accent); transform: scaleY(1.8); }
 .btn.sm-text { padding: 6px 12px; font-size: 12px; }
 
+/* ---------- accessibility toggles + study ---------- */
+.toggles { display: flex; flex-direction: column; gap: 8px; }
+.toggle { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); cursor: pointer; text-align: left; transition: background 0.25s, border-color 0.25s, transform 0.18s var(--spring); }
+.toggle:active { transform: scale(0.97); }
+.toggle span:nth-child(2) { flex: 1; }
+.toggle .knob { position: relative; width: 34px; height: 20px; border-radius: 20px; background: rgba(255, 255, 255, 0.15); transition: background 0.3s; flex-shrink: 0; }
+.toggle .knob::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform 0.35s var(--spring); }
+.toggle.on { border-color: var(--accent); background: rgba(122, 162, 255, 0.12); }
+.toggle.on .knob { background: var(--accent); }
+.toggle.on .knob::after { transform: translateX(14px); }
+.study > summary { cursor: pointer; margin-bottom: 8px; list-style: none; }
+.study input.select { margin-bottom: 8px; }
+.study .select + .select { margin-bottom: 8px; }
+.study-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.study-btns .btn { padding: 8px 6px; font-size: 12.5px; }
+.study-card { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 8; min-width: 380px; max-width: 520px; padding: 14px 18px; border-radius: 18px; background: rgba(19, 23, 34, 0.95); border: 1px solid rgba(122, 162, 255, 0.45); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6); backdrop-filter: blur(10px); animation: card-in 0.5s var(--spring) both; }
+.study-card[hidden] { display: none; }
+.study-card.holding { border-color: var(--ok); box-shadow: 0 0 40px rgba(94, 224, 160, 0.3); }
+.loc-card.waiting { border-color: var(--left); }
+.sc-head { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.sc-time { font-variant-numeric: tabular-nums; color: var(--text); }
+.sc-title { font-size: 18px; font-weight: 700; margin: 6px 0 2px; }
+.sc-sub { color: var(--muted); font-size: 12.5px; }
+.sc-bar { height: 5px; border-radius: 5px; background: rgba(255, 255, 255, 0.1); margin: 10px 0; overflow: hidden; }
+.sc-bar i { display: block; height: 100%; transform-origin: left; transform: scaleX(0); background: linear-gradient(90deg, var(--accent), var(--ok)); transition: transform 0.15s linear; }
+.sc-actions { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.study-modal { max-height: 86vh; overflow-y: auto; }
+.sum { width: 100%; border-collapse: collapse; margin: 8px 0; }
+.sum th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; }
+.sum td, .sum th { padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line); }
+.sum .ok { color: var(--ok); }
+.sum .bad { color: #ff8a8a; }
+.sus-row { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.sus-q { margin-bottom: 6px; }
+.sus-scale { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
+.sus-scale label { cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--text); font-size: 12px; }
+.sus-scale input { accent-color: var(--accent); cursor: pointer; }
+.blackout { position: fixed; inset: 0; z-index: 30; background: #000; display: grid; place-items: center; text-align: center; color: #333; font-size: 18px; animation: fade-in 0.4s both; }
+.blackout[hidden] { display: none; }
+.blackout small { color: #444; }
+
 /* ---------- drop zone + help overlay ---------- */
 .dropzone { position: absolute; inset: 12px; z-index: 6; display: grid; place-items: center; border-radius: 20px; border: 2px dashed var(--accent); background: rgba(10, 12, 18, 0.78); backdrop-filter: blur(6px); font-size: 20px; font-weight: 600; opacity: 0; pointer-events: none; transform: scale(0.98); transition: opacity 0.2s, transform 0.3s var(--spring); }
 .dropzone.on { opacity: 1; transform: none; }

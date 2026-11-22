@@ -125,6 +125,32 @@
         </div>
 
         <div class="group">
+          <div class="group-label">Accessibility</div>
+          <div class="toggles">
+            <button class="toggle" id="tglA11y" aria-pressed="false"><span class="knob"></span><span>Audio cues &amp; speech</span><kbd>A</kbd></button>
+            <button class="toggle" id="tglScreen" aria-pressed="false"><span class="knob"></span><span>Screen off</span><kbd>X</kbd></button>
+          </div>
+        </div>
+
+        <details class="group study" id="studyGroup">
+          <summary class="group-label">Study tools</summary>
+          <input id="studyId" class="select" placeholder="Participant ID" autocomplete="off" />
+          <select id="studyCond" class="select">
+            <option value="gesture">Gesture condition</option>
+            <option value="slider">Slider condition (gestures off)</option>
+          </select>
+          <div class="study-btns">
+            <button class="btn" id="btnRunTasks">Run tasks</button>
+            <button class="btn" id="btnRunLoc">Localization</button>
+            <button class="btn" id="btnRunFB">Front / back</button>
+            <button class="btn" id="btnSus">SUS form</button>
+            <button class="btn" id="btnExport">Export CSV</button>
+            <button class="btn" id="btnClearLog">Clear log</button>
+          </div>
+          <div class="muted" id="logCount">0 events logged</div>
+        </details>
+
+        <div class="group">
           <div class="group-label">Calibration <span class="muted" id="calibState">default range</span></div>
           <div class="row">
             <button class="btn" id="btnCalibrate" title="Calibrate your hand range (C)">Calibrate</button>

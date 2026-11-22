@@ -194,7 +194,7 @@ export function createUI({ store, actions }) {
       row.innerHTML = `<label for="sl-${d.key}">${d.label}</label><input id="sl-${d.key}" type="range" min="${d.min}" max="${d.max}" step="${d.step}"><output></output>`;
       const input = row.querySelector('input');
       const out = row.querySelector('output');
-      input.addEventListener('pointerdown', () => { dragging = d.key; });
+      input.addEventListener('pointerdown', () => { dragging = d.key; actions.sliderStart?.(); });
       window.addEventListener('pointerup', () => { dragging = null; });
       input.addEventListener('input', () => {
         const v = Number(input.value);

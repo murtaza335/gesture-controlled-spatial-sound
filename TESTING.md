@@ -84,10 +84,37 @@ Reload, click **Start with camera**, allow access.
 | 4.7 | Calibrate with nearly identical poses | Warning toast explaining why; previous range kept. |
 | 4.8 | `D` | Stats + a raw (red) vs filtered (green) graph of right-hand x + sliders. Raising "Smooth cutoff" makes motion snappier but shakier; lower is smoother but laggier. "Copy values" copies them to put in `src/config.js`. |
 
-## 5. Still not built
-Accessibility mode / speech, study tools (logging, localization test, task runner, SUS), stretch features.
+## 5. Phase 5 — accessibility and study tools
 
-## 6. Known rough edges / things to judge
+### Accessibility (`A` audio cues & speech, `X` screen off)
+| # | Do | Expect |
+|---|---|---|
+| 5.1 | Press `A` | Toggle lights up; a voice says "Accessibility mode on". |
+| 5.2 | Hover near a sound | Short blip + the sound's name spoken. |
+| 5.3 | Grab / release | Rising two-note blip on grab, falling on release; a low "miss" buzz if you pinch away from any sound. |
+| 5.4 | Left hand 1–5 fingers | Setting name spoken ("Bass"…). |
+| 5.5 | Left pinch + drag | Soft ticks each 10% of range; on release it speaks e.g. "Bass plus 6 dB". |
+| 5.6 | Fist reset / track change | Low thud / triple blip + track name spoken. |
+| 5.7 | `X` | Screen goes black ("Press X to restore"); `A` mode is switched on if it wasn't. **With eyes closed you can still grab a sound and change Bass.** |
+
+### Study session (side panel → Study tools)
+1. Enter a **Participant ID**, choose **Gesture** or **Slider** condition (slider = gestures off).
+2. **Run tasks**: five tasks T1–T5, each starting from a fresh Demo Band. A card shows the instruction, a timer, and a bar that fills while the answer stays within tolerance for 1 s. `Enter` = give up, `Esc` = stop. At the end: a results table, then the SUS questionnaire (10 items → score 0–100).
+3. **Localization**: 21 beeps (7 azimuths × 3, shuffled). Point with the right hand and pinch (mouse: click). Run once in HRTF, press `S`, run again in Stereo to compare. **Front / back**: 12 beeps, answer `F` or `B`.
+4. **Export CSV** → `gsam_<id>_<condition>_<yyyymmdd-hhmm>.csv`. Columns: `timestamp_ms, participant, condition, task_id, event, source_id, param, value, az, el, dist, extra` (`extra` is JSON). Events: `task_start/task_end` (value 1 = success; extra has time_ms, grabs, adjusts), `grab/release/grab_miss`, `adjust_start/adjust_end`, `param`, `select`, `swipe`, `reset`, `track_change`, `loc_response` (az = response, value = abs error, extra.target), `loc_fb`, `sus` (value = score).
+
+| # | Do | Expect |
+|---|---|---|
+| 5.8 | Run tasks, finish T1 (e.g. drag Drums to ~60° right and hold) | Bar fills, task advances; summary table at the end. |
+| 5.9 | Slider condition, try a pinch grab | Nothing happens (gestures off); sliders still work. |
+| 5.10 | Localization, 21 trials | Progress bar fills; summary shows mean error per mode. **HRTF should beat stereo only slightly for left/right; front/back is expected to be weak.** |
+| 5.11 | Export CSV, open in a spreadsheet | Header + one row per event with the columns above. |
+| 5.12 | SUS: answer all 10 | Submit enables only when all are answered; score logged (all-best answers = 100). |
+
+## 6. Still not built
+Stretch features (head tracking, pitch-only shifting, "find the sound" game, rear orbit mode). Real user-study runs, analysis and report are for you.
+
+## 7. Known rough edges / things to judge
 - Elevation and front/back cues are weak with generic HRTF — expected. **Left/right must be clear.**
 - Hand-distance depth is noisy; if it jumps, tell me how.
 - Feel of pinch thresholds (`PINCH_ON` 0.25 / `PINCH_OFF` 0.38) and the hand-to-stage range (`MAP` in `src/config.js`): if you can't reach the edges, or pinches miss/stick, report it.

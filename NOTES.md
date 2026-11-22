@@ -16,6 +16,15 @@
 - Calibration saves the whole MAP to `localStorage` (`gsam.calibration`); Reset deletes it.
 - A tight left fist may be read as a left pinch (risk, untested on real hands).
 
+## Phase 5 decisions
+- Screen-off key is `X` (not `B`) because `F`/`B` answer the front/back block.
+- `Enter` = give up the current task, `Esc` = stop the run (the plan was ambiguous).
+- Tasks start from a fresh Demo Band each time; T4 is on "Drums", T3 on "Pad".
+- Task time = time to first reach tolerance (the one held for 1 s).
+- Localization: the beep replays every 2.2 s until answered; response time counts from the first play.
+- Study logging only records after a study run starts (or SUS is submitted); Clear log empties it.
+- The localization response uses the right-hand cursor azimuth at pinch time; in screen-off mode a spatial "pointing" blip plays at the cursor every 0.5 s.
+
 ## Needs a human (camera + headphones)
 - Whether `HANDEDNESS_SWAP` must be flipped.
 - Tracking fps / GPU vs CPU delegate on real hardware.

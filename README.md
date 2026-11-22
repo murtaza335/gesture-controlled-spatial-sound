@@ -46,6 +46,15 @@ Click **Start without camera**. Move the mouse over the stage (the cursor is you
 | Calibrate your hand range | `C` or Calibrate: hold the right hand still ~1 s at far left, far right, high, low, close, far. Saved in the browser; Reset restores defaults |
 | Debug + live tuning | `D`: fps, delegate, raw vs filtered plot, sliders for smoothing / pinch / swipe |
 
+### Accessibility and study
+| Action | How |
+|---|---|
+| Audio cues + speech | `A` (earcons for grab / release / track / reset, spoken setting names and values) |
+| Screen off (eyes-free / blindfolded) | `X` |
+| Study tools | Side panel → Study tools: participant ID, condition (gesture / slider), Run tasks (T1–T5), Localization, Front/back, SUS form, Export CSV |
+
+See [TESTING.md](TESTING.md) for the full test and study walkthrough.
+
 ## Troubleshooting
 - **Can't reach the edges of the map** — run Calibrate (`C`).
 - **3D view is missing** — WebGL may be unavailable; the app falls back to Light mode.
