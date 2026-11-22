@@ -208,6 +208,23 @@ kbd { background: rgba(255, 255, 255, 0.1); border: 1px solid var(--line); borde
 .sl input[type='range']:active::-webkit-slider-thumb { transform: scale(1.35); }
 .sl input[type='range']::-moz-range-thumb { width: 14px; height: 14px; border: 0; border-radius: 50%; background: #fff; }
 
+/* ---------- calibration card ---------- */
+.calib { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%); z-index: 8; display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-radius: 18px; background: rgba(19, 23, 34, 0.94); border: 1px solid rgba(122, 162, 255, 0.45); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(122, 162, 255, 0.2); backdrop-filter: blur(10px); animation: card-in 0.5s var(--spring) both; min-width: 420px; }
+.calib[hidden] { display: none; }
+.calib-ring { --p: 0; position: relative; width: 62px; height: 62px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; font-weight: 700; background: conic-gradient(var(--accent) calc(var(--p) * 360deg), rgba(255, 255, 255, 0.1) 0); transition: filter 0.3s; }
+.calib-ring::before { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: var(--panel); }
+.calib-ring span { position: relative; font-variant-numeric: tabular-nums; }
+.calib-ring.ok { filter: drop-shadow(0 0 10px var(--ok)); }
+.calib-body { flex: 1; min-width: 0; }
+.calib-title { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.calib-note { color: var(--muted); min-height: 1.4em; transition: color 0.2s; }
+.calib-note.ok { color: var(--ok); }
+.calib-dots { display: flex; gap: 6px; margin-top: 6px; }
+.calib-dots i { width: 22px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.12); transition: background 0.3s, transform 0.3s var(--spring); }
+.calib-dots i.done { background: var(--ok); }
+.calib-dots i.now { background: var(--accent); transform: scaleY(1.8); }
+.btn.sm-text { padding: 6px 12px; font-size: 12px; }
+
 /* ---------- drop zone + help overlay ---------- */
 .dropzone { position: absolute; inset: 12px; z-index: 6; display: grid; place-items: center; border-radius: 20px; border: 2px dashed var(--accent); background: rgba(10, 12, 18, 0.78); backdrop-filter: blur(6px); font-size: 20px; font-weight: 600; opacity: 0; pointer-events: none; transform: scale(0.98); transition: opacity 0.2s, transform 0.3s var(--spring); }
 .dropzone.on { opacity: 1; transform: none; }

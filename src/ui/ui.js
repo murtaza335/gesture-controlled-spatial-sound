@@ -137,6 +137,30 @@ export function createUI({ store, actions }) {
     if (f && store.state.started) actions.upload(f);
   });
 
+  // ---------- calibration ----------
+  $('btnCalibrate').addEventListener('click', () => actions.startCalibration());
+  $('btnCalibReset').addEventListener('click', () => actions.resetCalibration());
+  $('calibCancel').addEventListener('click', () => actions.cancelCalibration());
+  const calibEls = { card: $('calib'), ring: $('calibRing'), step: $('calibStep'), prompt: $('calibPrompt'), note: $('calibNote'), dots: $('calibDots') };
+  calibEls.dots.innerHTML = '<i></i><i></i><i></i><i></i><i></i><i></i>';
+  function showCalibration(s) {
+    calibEls.card.hidden = !s.active;
+    if (!s.active) return;
+    calibEls.step.textContent = `${Math.min(s.step + 1, s.total)}/${s.total}`;
+    if (calibEls.prompt.textContent !== s.prompt) calibEls.prompt.textContent = s.prompt;
+    calibEls.note.textContent = s.note;
+    calibEls.note.classList.toggle('ok', s.note.includes('✓'));
+    calibEls.ring.classList.toggle('ok', s.note.includes('✓'));
+    calibEls.ring.style.setProperty('--p', s.progress.toFixed(2));
+    [...calibEls.dots.children].forEach((d, i) => {
+      d.classList.toggle('done', i < s.step);
+      d.classList.toggle('now', i === s.step);
+    });
+  }
+  function setCalibState(text) {
+    $('calibState').textContent = text;
+  }
+
   // ---------- help overlay ----------
   function showHelp(on = els.help.hidden) {
     els.help.hidden = !on;
@@ -271,6 +295,8 @@ export function createUI({ store, actions }) {
     toast,
     setSeg,
     showHelp,
+    showCalibration,
+    setCalibState,
     els,
     /** Called each animation frame (cheap, only writes on change). */
     frame(levels, tracking, { gests, now, flash, bump }) {

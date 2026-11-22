@@ -29,6 +29,15 @@
           <span>◀ Left</span><span>Front</span><span>Right ▶</span>
         </div>
         <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+        <div class="calib" id="calib" hidden>
+          <div class="calib-ring" id="calibRing"><span id="calibStep">1/6</span></div>
+          <div class="calib-body">
+            <div class="calib-title" id="calibPrompt">Reach your hand to the far LEFT</div>
+            <div class="calib-note" id="calibNote">Hold still…</div>
+            <div class="calib-dots" id="calibDots"></div>
+          </div>
+          <button class="btn sm-text" id="calibCancel">Cancel</button>
+        </div>
         <div class="dropzone" id="dropzone"><div>Drop an audio file to add it as a track</div></div>
       </main>
 
@@ -112,6 +121,14 @@
             <button class="seg-btn active" data-mode="high" title="3D scene on">High · 3D</button>
             <button class="seg-btn" data-mode="low" title="Light: 2D only, for slower laptops">Light</button>
             <span class="seg-thumb"></span>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="group-label">Calibration <span class="muted" id="calibState">default range</span></div>
+          <div class="row">
+            <button class="btn" id="btnCalibrate" title="Calibrate your hand range (C)">Calibrate</button>
+            <button class="btn" id="btnCalibReset">Reset</button>
           </div>
         </div>
 

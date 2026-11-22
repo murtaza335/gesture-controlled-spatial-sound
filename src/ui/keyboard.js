@@ -22,6 +22,8 @@ export function installKeyboard(actions) {
       case 'm': actions.toggleInput(); break;
       case 'd': actions.toggleDebug(); break;
       case 'v': actions.swapView(); break;
+      case 'c': actions.startCalibration(); break;
+      case 'escape': actions.cancelCalibration(); break;
       case 'h':
       case '?': actions.showHelp(); break;
       case '1': case '2': case '3': case '4': case '5':

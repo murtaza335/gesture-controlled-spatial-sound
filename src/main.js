@@ -13,6 +13,7 @@ import { createStage } from './visuals/stage2d.js';
 import { createOverlay } from './visuals/overlay2d.js';
 import { createScope } from './visuals/scope.js';
 import { createScene3d } from './visuals/scene3d.js';
+import { createCalibration, loadCalibration, saveCalibration, clearCalibration } from './gestures/calibration.js';
 import { createUI } from './ui/ui.js';
 import { createDebug } from './ui/debug.js';
 import { installKeyboard } from './ui/keyboard.js';
@@ -25,6 +26,10 @@ const videoEl = $('video');
 const stage = createStage($('stage'));
 const overlay = createOverlay($('overlay'));
 const mouse = createMouseSimulator($('stage'), () => stage.plotRect());
+const DEFAULT_MAP = { ...CONFIG.MAP };
+const calibration = createCalibration();
+const savedCal = loadCalibration(CONFIG.STORAGE_KEY);
+if (savedCal) Object.assign(CONFIG.MAP, savedCal);
 const smoother = new HandSmoother(CONFIG.SMOOTH, CONFIG.SMOOTH_DEPTH);
 const recognizer = createRecognizer(CONFIG);
 const debug = createDebug($('debug'));
@@ -109,6 +114,25 @@ const actions = {
       return;
     }
     store.set({ view: store.state.view === 'stage' ? '3d' : 'stage' });
+  },
+  startCalibration() {
+    controller.reset();
+    calibration.start();
+    ui.toast('Calibration: hold still at each position', { ms: 2500 });
+  },
+  cancelCalibration() {
+    if (!calibration.active) return;
+    calibration.cancel();
+    ui.showCalibration({ active: false });
+    ui.toast('Calibration cancelled', { ms: 1400 });
+  },
+  resetCalibration() {
+    calibration.cancel();
+    ui.showCalibration({ active: false });
+    clearCalibration(CONFIG.STORAGE_KEY);
+    Object.assign(CONFIG.MAP, DEFAULT_MAP);
+    ui.setCalibState('default range');
+    ui.toast('Calibration reset to defaults', { ms: 2000 });
   },
   setApplyTone(mode) {
     store.set({ applyToneTo: mode });
@@ -253,6 +277,24 @@ function loop(now) {
     frame = withScale(mouse.getFrame(now));
   }
   const gests = recognizer.update(frame, now);
+  if (calibration.active) {
+    // calibration owns the right hand: no grabs / gestures while it runs
+    gests.events.length = 0;
+    const r = gests.right;
+    const res = calibration.update(r.palm ? { palm: r.palm, scale: r.scale } : null, now, DEFAULT_MAP);
+    ui.showCalibration(res);
+    if (res.done) {
+      ui.showCalibration({ active: false });
+      if (res.ok) {
+        Object.assign(CONFIG.MAP, res.map);
+        saveCalibration(CONFIG.STORAGE_KEY, { ...res.map });
+        ui.setCalibState('calibrated');
+        ui.toast('Calibration saved ✓', { ms: 2500 });
+      } else {
+        ui.toast(`${res.reason} Kept the previous range.`, { warn: true, ms: 6000 });
+      }
+    }
+  }
   controller.update(gests, frame, now);
 
   // visuals
@@ -282,6 +324,8 @@ function loop(now) {
     gests,
   });
 }
+
+if (savedCal) ui.setCalibState('calibrated');
 
 // Reflect initial state in the UI before Start.
 ui.setSeg(ui.els.spatialSeg, 'hrtf');
