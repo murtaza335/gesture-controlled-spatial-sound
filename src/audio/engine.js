@@ -1,7 +1,7 @@
 import { CONFIG } from '../config.js';
 import { SoundSource } from './soundSource.js';
 import { makeImpulse } from './impulse.js';
-import { buildDemoBand } from './demoTracks.js';
+import { buildDemoBand, buildRainAndBells, buildTestNoise } from './demoTracks.js';
 import { defaultParams } from './params.js';
 
 /**
@@ -25,7 +25,17 @@ export const engine = {
     this.sourcesBus.connect(this.masterGain).connect(master).connect(ctx.destination);
     this.impulse = makeImpulse(ctx);
     await ctx.resume();
-    this.tracks = [await buildDemoBand()];
+    this.tracks = await Promise.all([buildDemoBand(), buildRainAndBells(), buildTestNoise()]);
+  },
+
+  /** Decodes a user file and appends it as a one-stem track. Rejects if it can't be decoded. */
+  async addUploadedTrack(file) {
+    const buffer = await this.ctx.decodeAudioData(await file.arrayBuffer());
+    this.tracks.push({
+      name: file.name.replace(/\.[^.]+$/, ''),
+      stems: [{ name: 'Audio', buffer, az: 0, el: 0, dist: 1.5 }],
+    });
+    return this.tracks.length - 1;
   },
 
   get latency() {
@@ -44,6 +54,7 @@ export const engine = {
       const src = new SoundSource(this, { id, name: stem.name, buffer: stem.buffer, startAt });
       src.setSpatialMode(this.spatialMode);
       src.setPosition(stem.az, stem.el, stem.dist);
+      for (const [k, v] of Object.entries(defaultParams())) src.setParam(k, v);
       this.sources.set(id, src);
       this.analysers.perSource.set(id, src.analyser);
       return { id, name: stem.name, az: stem.az, el: stem.el, dist: stem.dist, params: defaultParams() };
