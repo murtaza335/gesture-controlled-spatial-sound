@@ -3,6 +3,7 @@ import { SoundSource } from './soundSource.js';
 import { makeImpulse } from './impulse.js';
 import { buildDemoBand, buildRainAndBells, buildTestNoise } from './demoTracks.js';
 import { defaultParams } from './params.js';
+import { sphericalToCartesian } from '../mapping/handToAudio.js';
 
 /**
  * The only audio surface other modules use.
@@ -82,6 +83,37 @@ export const engine = {
     if (this.ctx.state === 'running') await this.ctx.suspend();
     else await this.ctx.resume();
     return this.ctx.state === 'running';
+  },
+
+  /** A short noise burst taken from the Test Noise track (for the localization test). */
+  makeBurst() {
+    const t = this.tracks.find((x) => x.name === 'Test Noise');
+    const src = t.stems[0].buffer;
+    const n = Math.floor(this.ctx.sampleRate * 0.27);
+    const buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+    buf.copyToChannel(src.getChannelData(0).subarray(0, n), 0);
+    return buf;
+  },
+
+  /** Plays a buffer once at a position, using the current spatial mode. Resolves when it ends. */
+  playOneShot(buffer, az, el = 0, dist = 1.5) {
+    const ctx = this.ctx;
+    const src = new AudioBufferSourceNode(ctx, { buffer });
+    let node;
+    if (this.spatialMode === 'hrtf') {
+      const p = sphericalToCartesian(az, el, dist);
+      node = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 1, positionX: p.x, positionY: p.y, positionZ: p.z });
+    } else {
+      node = new StereoPannerNode(ctx, { pan: Math.sin((az * Math.PI) / 180) });
+    }
+    src.connect(node).connect(this.masterGain);
+    src.start();
+    return new Promise((resolve) => {
+      src.onended = () => {
+        node.disconnect();
+        resolve();
+      };
+    });
   },
 
   level(id) {
